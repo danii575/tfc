@@ -25,7 +25,7 @@ import {
 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import Header from "../components/Header"; 
-
+//hola 
 // --- Paleta de Colores Refinada ---
 const theme = {
   primaryColor: "#2A9D8F", // Verde azulado principal (Teal)

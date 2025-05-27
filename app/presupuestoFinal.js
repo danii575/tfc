@@ -18,6 +18,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import Header from '../components/Header';
 import { useAuth } from './_layout';
+//hola 
 
 // --- Definiciones de Tema y Estilo ---
 const theme = {

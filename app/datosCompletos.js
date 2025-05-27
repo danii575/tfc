@@ -25,6 +25,7 @@ import comunidades from '../data/comunidades.json';
 import { doc, updateDoc, collection, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { updateProfile } from 'firebase/auth';
+//hola 
 
 // --- Definiciones de Tema y Estilo ---
 const theme = {

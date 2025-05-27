@@ -21,6 +21,7 @@ import { getAuth } from 'firebase/auth'; // Importar getAuth
 import { app as firebaseApp } from '../firebase/firebaseConfig'; // Importar firebaseApp
 
 import Header from '../components/Header'; 
+//hola 
 
 // Definiciones de Tema (consistente)
 const theme = {
