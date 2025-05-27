@@ -25,6 +25,7 @@ import {
 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import Header from "../components/Header"; 
+//hola 
 
 // --- Paleta de Colores Refinada ---
 const theme = {

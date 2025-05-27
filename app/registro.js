@@ -20,6 +20,7 @@ import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth';
 import { db, app as firebaseApp } from '../firebase/firebaseConfig';
 import { doc, setDoc } from 'firebase/firestore';
+//hola 
 
 import { useAuth } from './_layout';
 

@@ -15,7 +15,7 @@ import {
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialIcons } from '@expo/vector-icons';
+imp//hola 
 
 import { getAuth } from 'firebase/auth'; // Importar getAuth
 import { app as firebaseApp } from '../firebase/firebaseConfig'; // Importar firebaseApp

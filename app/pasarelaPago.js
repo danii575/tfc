@@ -21,6 +21,7 @@ import { FadeInSection } from '../components/FadeInSection';
 import { useAuth } from './_layout';
 import { doc, updateDoc, collection, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
+//hola 
 
 // --- Definiciones de Tema ---
 const theme = {

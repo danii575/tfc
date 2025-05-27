@@ -20,6 +20,7 @@ import { Picker } from '@react-native-picker/picker';
 import { getAuth } from 'firebase/auth'; 
 import { db, app as firebaseApp } from '../firebase/firebaseConfig';
 import { collection, addDoc } from 'firebase/firestore';
+//hola 
 
 import Header from '../components/Header'; 
 import { useAuth } from './_layout'; // Asegúrate que esta ruta sea correcta para tu AuthContext

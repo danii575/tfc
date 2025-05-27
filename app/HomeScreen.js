@@ -12,6 +12,7 @@ export default function HomeScreen({ navigation }) {
     await signOut(auth);
     navigation.replace('Login');
   };
+//hola 
 
   return (
     <View style={styles.container}>
