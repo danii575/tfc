@@ -16,7 +16,7 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
-//hola 
+//holaffffff 
 
 import { getAuth } from 'firebase/auth';
 import { db, app as firebaseApp } from '../firebase/firebaseConfig';
