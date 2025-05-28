@@ -63,7 +63,7 @@ const typography = {
 
 const spacing = { small: 8, medium: 14, large: 20, extraLarge: 28, ultraLarge: 48 };
 
-// Tipos de vía para el desplegable
+// Tipos de vía para el desplegablea
 const tiposVia = [
   { value: 'calle', label: 'Calle' },
   { value: 'avenida', label: 'Avenida' },
