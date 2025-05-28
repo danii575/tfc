@@ -23,7 +23,7 @@ import { FadeInSection } from '../components/FadeInSection';
 import { useAuth } from './_layout';
 import provincias from '../data/provincias.json';
 import comunidades from '../data/comunidades.json';
-import { doc, updateDoc, collection, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, setDoc, addDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { updateProfile } from 'firebase/auth';
 
@@ -66,6 +66,7 @@ const spacing = { small: 8, medium: 14, large: 20, extraLarge: 28, ultraLarge: 4
 
 // Tipos de vía para el desplegablea
 const tiposVia = [
+  { value: '', label: 'Selecciona tipo de vía' },
   { value: 'calle', label: 'Calle' },
   { value: 'avenida', label: 'Avenida' },
   { value: 'plaza', label: 'Plaza' },
@@ -81,6 +82,9 @@ const tiposVia = [
   { value: 'poligono', label: 'Polígono' },
   { value: 'otros', label: 'Otros' }
 ];
+
+const provinciasOptions = [{ value: '', label: 'Selecciona provincia' }, ...provincias.map(p => ({ value: p.value || p.label, label: p.label || p }))];
+const comunidadesOptions = [{ value: '', label: 'Selecciona comunidad' }, ...comunidades.map(c => ({ value: c.value || c.label, label: c.label || c }))];
 
 // Componente específico para el campo del microchip
 const ChipInput = ({ index, value, onChangeText, error }) => {
@@ -242,7 +246,7 @@ const PLANS_DATA = [
 export default function DatosCompletosPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const [formData, setFormData] = useState({
     tipoDocumento: 'DNI',
     numeroDocumento: '',
@@ -425,7 +429,7 @@ export default function DatosCompletosPage() {
 
   // Animaciones de entrada
   useEffect(() => {
-    Animated.parallel([
+    const animations = Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 1000,
@@ -444,7 +448,9 @@ export default function DatosCompletosPage() {
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
-    ]).start();
+    ]);
+
+    animations.start();
 
     // Animación de pulso para el botón principal
     const pulseAnimation = Animated.loop(
@@ -463,10 +469,14 @@ export default function DatosCompletosPage() {
         }),
       ])
     );
+
     pulseAnimation.start();
 
-    return () => pulseAnimation.stop();
-  }, []);
+    return () => {
+      animations.stop();
+      pulseAnimation.stop();
+    };
+  }, []); // Array de dependencias vacío para que solo se ejecute una vez
 
   const validateForm = () => {
     return validarFormulario();
@@ -501,14 +511,22 @@ export default function DatosCompletosPage() {
   const handleSubmit = async () => {
     console.log("[DatosCompletos] Iniciando handleSubmit");
     console.log("[DatosCompletos] FormData actual:", formData);
-    console.log("[DatosCompletos] Errores actuales:", errors);
+    console.log("[DatosCompletos] Estado de autenticación:", currentUser ? "Autenticado" : "No autenticado");
     
+    // Verificar autenticación primero
+    if (!currentUser) {
+      console.log("[DatosCompletos] Usuario no autenticado, redirigiendo a login");
+      Alert.alert('Error', 'Por favor, inicia sesión para continuar.');
+      router.replace('/login');
+      return;
+    }
+
     const isValid = validarFormulario();
     console.log("[DatosCompletos] Formulario válido:", isValid);
     
     if (!isValid) {
       console.log("[DatosCompletos] Formulario inválido, mostrando errores:", errors);
-      Alert.alert('Error', 'Por favor, completa todos los campos correctamente.');
+      Alert.alert('Error', 'Por favor, completa todos los campos obligatorios y corrige los errores.');
       return;
     }
 
@@ -516,91 +534,84 @@ export default function DatosCompletosPage() {
       setIsLoading(true);
       console.log("[DatosCompletos] Iniciando guardado en Firebase");
       
-      // Guardar datos en Firebase
-      if (user) {
-        const userRef = doc(db, "usuarios", user.uid);
-        await updateDoc(userRef, {
-          tipoDocumento: formData.tipoDocumento,
-          numeroDocumento: formData.numeroDocumento,
-          fechaNacimiento: formData.fechaNacimiento,
-          tipoVia: formData.tipoVia,
-          nombreVia: formData.nombreVia,
-          numero: formData.numero,
-          piso: formData.piso,
-          puerta: formData.puerta,
-          escalera: formData.escalera,
-          codigoPostal: formData.codigoPostal,
-          provincia: formData.provincia,
-          comunidadAutonoma: formData.comunidadAutonoma,
-          mascotas: formData.mascotas,
-          ultimaActualizacion: new Date().toISOString()
-        });
+      const userRef = doc(db, "usuarios", currentUser.uid);
+      await updateDoc(userRef, {
+        tipoDocumento: formData.tipoDocumento,
+        numeroDocumento: formData.numeroDocumento,
+        fechaNacimiento: formData.fechaNacimiento,
+        tipoVia: formData.tipoVia,
+        nombreVia: formData.nombreVia,
+        numero: formData.numero,
+        piso: formData.piso,
+        puerta: formData.puerta,
+        escalera: formData.escalera,
+        codigoPostal: formData.codigoPostal,
+        provincia: formData.provincia,
+        comunidadAutonoma: formData.comunidadAutonoma,
+        mascotas: formData.mascotas,
+        ultimaActualizacion: new Date().toISOString()
+      });
 
-        // Si viene del registro con datos de presupuesto, guardar también el presupuesto
-        if (params.fromRegistro === 'true' && params.animals) {
-          try {
-            const animals = JSON.parse(params.animals);
-            const presupuestoData = {
-              uidUsuario: user.uid,
-              animals: animals,
-              ownerData: {
-                nombre: user.displayName || '',
-                email: user.email,
-                telefono: formData.telefono || ''
-              },
-              howHeard: params.howHeard || '',
-              selectedPlanId: params.selectedPlanId || '',
-              planNombre: params.planNombre || '',
-              precioEstimado: params.precioEstimado || '',
-              numeroMascotas: params.numeroMascotas || '0',
-              status: "completado",
-              createdAt: new Date().toISOString(),
-              completedAt: new Date().toISOString()
-            };
-
-            await setDoc(doc(collection(db, 'presupuestos')), presupuestoData);
-            console.log("[DatosCompletos] Presupuesto guardado exitosamente");
-          } catch (error) {
-            console.error("[DatosCompletos] Error al guardar presupuesto:", error);
-          }
-        }
-
-        // Calcular precio final
-        const planPrice = formData.planSeleccionado?.precio ? parseFloat(formData.planSeleccionado.precio) : 0;
-        const finalPrice = planPrice + (seguroCivil ? precioCivil : 0);
-
-        // Redirigir a la pasarela de pago con los datos del plan
-        console.log("[DatosCompletos] Preparando navegación a pasarela de pago");
-        console.log("[DatosCompletos] Plan seleccionado:", formData.planSeleccionado);
-        console.log("[DatosCompletos] Seguro civil:", seguroCivil);
-        console.log("[DatosCompletos] Precio final:", finalPrice);
-        
-        const pagoParams = {
-          planNombre: formData.planSeleccionado?.nombre || 'Plan Básico',
-          precioBase: formData.planSeleccionado?.precio?.toString() || '29.00',
-          seguroCivil: seguroCivil.toString(),
-          precioTotal: finalPrice.toString(),
-          fromDatosCompletos: 'true',
-          userId: user.uid
-        };
-        
-        console.log("[DatosCompletos] Parámetros de pago:", pagoParams);
-        
+      if (params.fromRegistro === 'true' && params.animals) {
         try {
-          console.log("[DatosCompletos] Ejecutando router.push...");
-          await router.push({
-            pathname: '/pasarelaPago',
-            params: pagoParams
-          });
-          console.log("[DatosCompletos] router.push ejecutado exitosamente");
-        } catch (routerError) {
-          console.error("[DatosCompletos] Error en router.push:", routerError);
-          Alert.alert('Error', 'Error al navegar a la pasarela de pago');
+          const animals = JSON.parse(params.animals);
+          const presupuestoData = {
+            uidUsuario: currentUser.uid,
+            animals: animals,
+            ownerData: {
+              nombre: currentUser.displayName || '',
+              email: currentUser.email
+            },
+            howHeard: params.howHeard || '',
+            selectedPlanId: params.selectedPlanId || '',
+            planNombre: params.planNombre || '',
+            precioEstimado: params.precioEstimado || '',
+            numeroMascotas: params.numeroMascotas || '0',
+            status: "completado",
+            createdAt: new Date().toISOString(),
+            completedAt: new Date().toISOString()
+          };
+
+          await addDoc(collection(db, 'presupuestos'), presupuestoData);
+          console.log("[DatosCompletos] Presupuesto guardado exitosamente");
+        } catch (error) {
+          console.error("[DatosCompletos] Error al guardar presupuesto:", error);
         }
       }
+
+      const planPrice = formData.planSeleccionado?.precio ? parseFloat(formData.planSeleccionado.precio) : 0;
+      const finalPrice = planPrice + (seguroCivil ? precioCivil : 0);
+
+      console.log("[DatosCompletos] Preparando navegación a pasarela de pago");
+      console.log("[DatosCompletos] Plan seleccionado:", formData.planSeleccionado);
+      console.log("[DatosCompletos] Seguro civil:", seguroCivil);
+      console.log("[DatosCompletos] Precio final:", finalPrice);
+      
+      const pagoParams = {
+        planNombre: formData.planSeleccionado?.nombre || 'Plan Básico',
+        precioBase: formData.planSeleccionado?.precio?.toString() || '29.00',
+        seguroCivil: seguroCivil.toString(),
+        precioTotal: finalPrice.toFixed(2).toString(),
+        fromDatosCompletos: 'true',
+        userId: currentUser.uid
+      };
+      
+      console.log("[DatosCompletos] Parámetros de pago:", pagoParams);
+      
+      try {
+        console.log("[DatosCompletos] Ejecutando router.replace...");
+        await router.replace({
+          pathname: '/pasarelaPago',
+          params: pagoParams
+        });
+        console.log("[DatosCompletos] router.replace ejecutado exitosamente");
+      } catch (routerError) {
+        console.error("[DatosCompletos] Error en router.replace:", routerError);
+        Alert.alert('Error', 'Error al navegar a la pasarela de pago.');
+      }
     } catch (error) {
-      console.error("[DatosCompletos] Error al guardar datos:", error);
-      Alert.alert('Error', 'Hubo un error al guardar los datos');
+      console.error("[DatosCompletos] Error general al guardar datos o navegar:", error);
+      Alert.alert('Error', 'Hubo un error al procesar tus datos. Inténtalo de nuevo.');
     } finally {
       setIsLoading(false);
     }
@@ -635,48 +646,51 @@ export default function DatosCompletosPage() {
   const validarFormulario = () => {
     const nuevosErrores = {};
 
-    if (formData.tipoDocumento === 'DNI' && !validarDNI(formData.numeroDocumento)) {
-      nuevosErrores.numeroDocumento = 'DNI inválido';
+    if (!formData.tipoDocumento) {
+      nuevosErrores.tipoDocumento = 'Selecciona el tipo de documento.';
+    } else if (formData.tipoDocumento === 'DNI' && !validarDNI(formData.numeroDocumento)) {
+      nuevosErrores.numeroDocumento = 'DNI inválido.';
+    } else if (formData.tipoDocumento === 'NIE' && !validarNIE(formData.numeroDocumento)) {
+      nuevosErrores.numeroDocumento = 'NIE inválido.';
     }
-    if (formData.tipoDocumento === 'NIE' && !validarNIE(formData.numeroDocumento)) {
-      nuevosErrores.numeroDocumento = 'NIE inválido';
-    }
+
     if (!formData.numeroDocumento) {
-        nuevosErrores.numeroDocumento = 'El DNI/NIE es obligatorio.';
+      nuevosErrores.numeroDocumento = 'El número de documento es obligatorio.';
     }
 
     if (!formData.fechaNacimiento) {
-        nuevosErrores.fechaNacimiento = 'La fecha de nacimiento es obligatoria.';
+      nuevosErrores.fechaNacimiento = 'La fecha de nacimiento es obligatoria.';
     } else {
-        const edad = calcularEdad(formData.fechaNacimiento);
-        if (edad < 18) {
-            nuevosErrores.fechaNacimiento = 'Debes ser mayor de 18 años.';
-        }
+      const edad = calcularEdad(formData.fechaNacimiento);
+      if (edad < 18) {
+        nuevosErrores.fechaNacimiento = 'Debes ser mayor de 18 años.';
+      }
     }
 
-    if (!validarCodigoPostal(formData.codigoPostal)) {
+    if (!formData.codigoPostal) {
+      nuevosErrores.codigoPostal = 'El código postal es obligatorio.';
+    } else if (!validarCodigoPostal(formData.codigoPostal)) {
       nuevosErrores.codigoPostal = 'Código postal inválido (5 dígitos).';
-    }
-     if (!formData.codigoPostal) {
-        nuevosErrores.codigoPostal = 'El código postal es obligatorio.';
     }
 
     // Validar campos de dirección
     const validacionDireccion = validarDireccionCompleta(
-      formData.tipoVia, 
-      formData.nombreVia, 
-      formData.numero, 
-      formData.piso, 
+      formData.tipoVia,
+      formData.nombreVia,
+      formData.numero,
+      formData.piso,
       formData.puerta
     );
-    
+
     if (!validacionDireccion.tipoVia) {
       nuevosErrores.tipoVia = 'Selecciona el tipo de vía.';
     }
     if (!validacionDireccion.nombreVia) {
       nuevosErrores.nombreVia = 'El nombre de la vía debe tener al menos 3 caracteres.';
     }
-    if (!validacionDireccion.numero) {
+    if (!formData.numero) {
+      nuevosErrores.numero = 'El número es obligatorio.';
+    } else if (!validacionDireccion.numero) {
       nuevosErrores.numero = 'Número inválido (ej: 123, 45A).';
     }
     if (!validacionDireccion.piso) {
@@ -685,22 +699,29 @@ export default function DatosCompletosPage() {
     if (!validacionDireccion.puerta) {
       nuevosErrores.puerta = 'La puerta es obligatoria.';
     }
-    
+
     if (!formData.provincia) {
-        nuevosErrores.provincia = 'La provincia es obligatoria.';
+      nuevosErrores.provincia = 'La provincia es obligatoria.';
     }
     if (!formData.comunidadAutonoma) {
-        nuevosErrores.comunidadAutonoma = 'La comunidad autónoma es obligatoria.';
+      nuevosErrores.comunidadAutonoma = 'La comunidad autónoma es obligatoria.';
     }
 
-    formData.mascotas.forEach((mascota, index) => {
-      if (!validarChip((mascota.chip || '').replace(/\D/g, ''))) {
-        nuevosErrores[`mascota_${index}`] = 'Chip inválido (15 dígitos).';
+    // Validar chips de mascotas
+    if (!formData.mascotas || formData.mascotas.length === 0) {
+      if (params.animals && JSON.parse(params.animals).length > 0) {
+        nuevosErrores.mascotas = 'Debes completar los datos de las mascotas.';
       }
-      if (!mascota.chip) {
-         nuevosErrores[`mascota_${index}`] = 'El chip de la mascota es obligatorio.';
-      }
-    });
+    } else {
+      formData.mascotas.forEach((mascota, index) => {
+        const chipValue = (mascota.chip || '').replace(/\D/g, '');
+        if (!chipValue) {
+          nuevosErrores[`mascota_${index}`] = 'El chip de la mascota es obligatorio.';
+        } else if (!validarChip(chipValue)) {
+          nuevosErrores[`mascota_${index}`] = 'Chip inválido (debe tener 15 dígitos numéricos).';
+        }
+      });
+    }
 
     setErrors(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
@@ -915,16 +936,24 @@ export default function DatosCompletosPage() {
                       <Text style={styles.label}>Tipo de Vía *</Text>
                       {isWeb ? (
                         <View style={[styles.inputWrapper, styles.selectWrapper, errors.tipoVia && styles.inputError]}>
-                          <MaterialIcons name="signpost" size={20} color={theme.greyMedium} style={styles.inputIcon} /><select
+                          <MaterialIcons name="signpost" size={20} color={theme.greyMedium} style={styles.inputIcon} />
+                          <select
                             value={formData.tipoVia}
                             onChange={e => handleInputChange('tipoVia', e.target.value)}
                             style={styles.selectCustom}
                             aria-label="Selecciona tipo de vía"
-                          ><option value="">Selecciona tipo de vía</option>{tiposVia.map(tipo => (<option key={tipo.value} value={tipo.value}>{tipo.label}</option>))}</select>
+                          >
+                            {tiposVia.map(tipo => (
+                              <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
+                            ))}
+                          </select>
                         </View>
                       ) : (
                         <View style={styles.inputContainer}>
-                          <Text style={styles.placeholderText}>(Implementar Picker Nativo para Tipo de Vía)</Text>
+                          <View style={[styles.inputWrapper, errors.tipoVia && styles.inputError]}>
+                            <MaterialIcons name="signpost" size={20} color={theme.greyMedium} style={styles.inputIcon} />
+                            <Text style={styles.placeholderTextNative}>Selecciona tipo de vía (Pendiente Picker Nativo)</Text>
+                          </View>
                         </View>
                       )}
                       {errors.tipoVia && <Text style={styles.errorText}>{errors.tipoVia}</Text>}
@@ -1032,12 +1061,17 @@ export default function DatosCompletosPage() {
                     <View style={styles.inputContainer}>
                         <Text style={styles.label}>Provincia *</Text>
                         <View style={[styles.inputWrapper, styles.selectWrapper, errors.provincia && styles.inputError]}>
-                        <MaterialIcons name="location-city" size={20} color={theme.greyMedium} style={styles.inputIcon} /><select
+                        <MaterialIcons name="location-city" size={20} color={theme.greyMedium} style={styles.inputIcon} />
+                        <select
                             value={formData.provincia}
                             onChange={e => handleInputChange('provincia', e.target.value)}
                             style={styles.selectCustom}
                             aria-label="Selecciona provincia"
-                          ><option value="">Selecciona provincia</option>{provincias.map(p => (<option key={p.value || p.label} value={p.value || p.label}>{p.label || p}</option>))}</select>
+                          >
+                            {provinciasOptions.map(p => (
+                              <option key={p.value} value={p.value}>{p.label}</option>
+                            ))}
+                        </select>
                         </View>
                         {errors.provincia && <Text style={styles.errorText}>{errors.provincia}</Text>}
                     </View>
@@ -1045,12 +1079,17 @@ export default function DatosCompletosPage() {
                     <View style={styles.inputContainer}>
                         <Text style={styles.label}>Comunidad Autónoma *</Text>
                         <View style={[styles.inputWrapper, styles.selectWrapper, errors.comunidadAutonoma && styles.inputError]}>
-                        <MaterialIcons name="map" size={20} color={theme.greyMedium} style={styles.inputIcon} /><select
+                        <MaterialIcons name="map" size={20} color={theme.greyMedium} style={styles.inputIcon} />
+                        <select
                             value={formData.comunidadAutonoma}
                             onChange={e => handleInputChange('comunidadAutonoma', e.target.value)}
                             style={styles.selectCustom}
                             aria-label="Selecciona comunidad autónoma"
-                          ><option value="">Selecciona comunidad</option>{comunidades.map(c => (<option key={c.value || c.label} value={c.value || c.label}>{c.label || c}</option>))}</select>
+                          >
+                            {comunidadesOptions.map(c => (
+                              <option key={c.value} value={c.value}>{c.label}</option>
+                            ))}
+                        </select>
                         </View>
                         {errors.comunidadAutonoma && <Text style={styles.errorText}>{errors.comunidadAutonoma}</Text>}
                     </View>
@@ -1923,6 +1962,16 @@ const styles = StyleSheet.create({
   },
   editButtonIcon: {
     marginRight: spacing.medium,
+  },
+  placeholderTextNative: {
+    fontSize: 16,
+    color: theme.greyMedium,
+    paddingVertical: 15,
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: theme.borderColor,
+    borderRadius: theme.borderRadius,
+    backgroundColor: theme.greyLight,
   },
 });
 
