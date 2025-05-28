@@ -13,6 +13,7 @@ import {
   Pressable,
   Animated,
   Easing,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -502,7 +503,7 @@ export default function DatosCompletosPage() {
     console.log("[DatosCompletos] FormData actual:", formData);
     console.log("[DatosCompletos] Errores actuales:", errors);
     
-    const isValid = validateForm();
+    const isValid = validarFormulario();
     console.log("[DatosCompletos] Formulario válido:", isValid);
     
     if (!isValid) {
@@ -535,8 +536,6 @@ export default function DatosCompletosPage() {
           ultimaActualizacion: new Date().toISOString()
         });
 
-        // No actualizamos el displayName ya que se configuró en el registro
-
         // Si viene del registro con datos de presupuesto, guardar también el presupuesto
         if (params.fromRegistro === 'true' && params.animals) {
           try {
@@ -566,6 +565,10 @@ export default function DatosCompletosPage() {
           }
         }
 
+        // Calcular precio final
+        const planPrice = formData.planSeleccionado?.precio ? parseFloat(formData.planSeleccionado.precio) : 0;
+        const finalPrice = planPrice + (seguroCivil ? precioCivil : 0);
+
         // Redirigir a la pasarela de pago con los datos del plan
         console.log("[DatosCompletos] Preparando navegación a pasarela de pago");
         console.log("[DatosCompletos] Plan seleccionado:", formData.planSeleccionado);
@@ -574,17 +577,18 @@ export default function DatosCompletosPage() {
         
         const pagoParams = {
           planNombre: formData.planSeleccionado?.nombre || 'Plan Básico',
-          precioBase: formData.planSeleccionado?.precio?.toFixed(2) || '29.00',
+          precioBase: formData.planSeleccionado?.precio?.toString() || '29.00',
           seguroCivil: seguroCivil.toString(),
-          precioTotal: finalPrice.toFixed(2),
-          fromDatosCompletos: 'true'
+          precioTotal: finalPrice.toString(),
+          fromDatosCompletos: 'true',
+          userId: user.uid
         };
         
         console.log("[DatosCompletos] Parámetros de pago:", pagoParams);
         
         try {
           console.log("[DatosCompletos] Ejecutando router.push...");
-          router.push({
+          await router.push({
             pathname: '/pasarelaPago',
             params: pagoParams
           });
@@ -595,7 +599,7 @@ export default function DatosCompletosPage() {
         }
       }
     } catch (error) {
-      console.error("Error al guardar datos:", error);
+      console.error("[DatosCompletos] Error al guardar datos:", error);
       Alert.alert('Error', 'Hubo un error al guardar los datos');
     } finally {
       setIsLoading(false);
@@ -911,18 +915,12 @@ export default function DatosCompletosPage() {
                       <Text style={styles.label}>Tipo de Vía *</Text>
                       {isWeb ? (
                         <View style={[styles.inputWrapper, styles.selectWrapper, errors.tipoVia && styles.inputError]}>
-                          <MaterialIcons name="signpost" size={20} color={theme.greyMedium} style={styles.inputIcon} />
-                          <select
+                          <MaterialIcons name="signpost" size={20} color={theme.greyMedium} style={styles.inputIcon} /><select
                             value={formData.tipoVia}
                             onChange={e => handleInputChange('tipoVia', e.target.value)}
                             style={styles.selectCustom}
                             aria-label="Selecciona tipo de vía"
-                          >
-                            <option value="">Selecciona tipo de vía</option>
-                            {tiposVia.map(tipo => (
-                              <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
-                            ))}
-                          </select>
+                          ><option value="">Selecciona tipo de vía</option>{tiposVia.map(tipo => (<option key={tipo.value} value={tipo.value}>{tipo.label}</option>))}</select>
                         </View>
                       ) : (
                         <View style={styles.inputContainer}>
@@ -1034,16 +1032,12 @@ export default function DatosCompletosPage() {
                     <View style={styles.inputContainer}>
                         <Text style={styles.label}>Provincia *</Text>
                         <View style={[styles.inputWrapper, styles.selectWrapper, errors.provincia && styles.inputError]}>
-                        <MaterialIcons name="location-city" size={20} color={theme.greyMedium} style={styles.inputIcon} />
-                        <select
+                        <MaterialIcons name="location-city" size={20} color={theme.greyMedium} style={styles.inputIcon} /><select
                             value={formData.provincia}
                             onChange={e => handleInputChange('provincia', e.target.value)}
                             style={styles.selectCustom}
                             aria-label="Selecciona provincia"
-                        >
-                            <option value="">Selecciona provincia</option>
-                            {provincias.map(p => <option key={p.value || p} value={p.value || p}>{p.label || p}</option>)}
-                        </select>
+                          ><option value="">Selecciona provincia</option>{provincias.map(p => (<option key={p.value || p.label} value={p.value || p.label}>{p.label || p}</option>))}</select>
                         </View>
                         {errors.provincia && <Text style={styles.errorText}>{errors.provincia}</Text>}
                     </View>
@@ -1051,16 +1045,12 @@ export default function DatosCompletosPage() {
                     <View style={styles.inputContainer}>
                         <Text style={styles.label}>Comunidad Autónoma *</Text>
                         <View style={[styles.inputWrapper, styles.selectWrapper, errors.comunidadAutonoma && styles.inputError]}>
-                        <MaterialIcons name="map" size={20} color={theme.greyMedium} style={styles.inputIcon} />
-                        <select
+                        <MaterialIcons name="map" size={20} color={theme.greyMedium} style={styles.inputIcon} /><select
                             value={formData.comunidadAutonoma}
                             onChange={e => handleInputChange('comunidadAutonoma', e.target.value)}
                             style={styles.selectCustom}
                             aria-label="Selecciona comunidad autónoma"
-                        >
-                            <option value="">Selecciona comunidad</option>
-                            {comunidades.map(c => <option key={c.value || c} value={c.value || c}>{c.label || c}</option>)}
-                        </select>
+                          ><option value="">Selecciona comunidad</option>{comunidades.map(c => (<option key={c.value || c.label} value={c.value || c.label}>{c.label || c}</option>))}</select>
                         </View>
                         {errors.comunidadAutonoma && <Text style={styles.errorText}>{errors.comunidadAutonoma}</Text>}
                     </View>
@@ -1093,7 +1083,6 @@ export default function DatosCompletosPage() {
                     <Text style={styles.petCountText}>{formData.mascotas.length}</Text>
                   </View>
                 </View>
-                {console.log("[RENDER] Renderizando mascotas:", formData.mascotas.map(m => ({ nombre: m.nombre, chip: m.chip })))}
                 {formData.mascotas.length === 0 && (
                   <View style={styles.noAnimalsContainer}>
                     <Text style={styles.noAnimalsText}>No hay mascotas para mostrar. Verifica que los datos se hayan cargado correctamente.</Text>
@@ -1105,61 +1094,48 @@ export default function DatosCompletosPage() {
                       <MaterialCommunityIcons name={mascota.tipo === 'gato' ? "cat" : "dog"} size={24} color={theme.primaryColor} />
                       <Text style={styles.petCardTitle}>{mascota.nombre || `Mascota ${index + 1}`}</Text>
                     </View>
-                                         <View style={styles.inputContainer}>
-                       <Text style={[styles.label, {color: theme.secondaryColor}]}>Número de Chip *</Text>
-                       <View style={[styles.inputWrapper, errors[`mascota_${index}`] && styles.inputError]}>
-                         <MaterialIcons name="memory" size={20} color={theme.greyMedium} style={styles.inputIcon} />
-                         <TextInput
-                           style={styles.inputNoOutline}
-                           value={mascota.chip || ''}
-                           onChangeText={(text) => {
-                             console.log(`[CHIP] Escribiendo en mascota ${index}:`, text);
-                             console.log(`[CHIP] Estado actual de mascotas antes del cambio:`, formData.mascotas.map(m => ({ nombre: m.nombre, chip: m.chip })));
-                             
-                             const numericValue = text.replace(/[^0-9]/g, '').slice(0, 15);
-                             console.log(`[CHIP] Valor procesado para mascota ${index}:`, numericValue);
-                             
-                             setFormData(prevData => {
-                               // Crear una copia profunda para evitar mutaciones
-                               const updatedMascotas = prevData.mascotas.map((mascotaItem, i) => {
-                                 if (i === index) {
-                                   const updatedMascota = {
-                                     ...mascotaItem,
-                                     chip: numericValue
-                                   };
-                                   console.log(`[CHIP] Mascota ${index} actualizada:`, updatedMascota);
-                                   return updatedMascota;
-                                 }
-                                 return { ...mascotaItem }; // Copia profunda de las demás mascotas
-                               });
-                               
-                               console.log(`[CHIP] Todas las mascotas después del cambio:`, updatedMascotas.map(m => ({ nombre: m.nombre, chip: m.chip })));
-                               
-                               return {
-                                 ...prevData,
-                                 mascotas: updatedMascotas
-                               };
-                             });
-                             
-                             // Limpiar errores si es necesario
-                             if (errors[`mascota_${index}`]) {
-                               setErrors(prev => ({ ...prev, [`mascota_${index}`]: null }));
-                             }
-                           }}
-                           placeholder="Escribe 15 números"
-                           keyboardType="numeric"
-                           maxLength={15}
-                           placeholderTextColor={theme.greyMedium}
-                           autoComplete="off"
-                           autoCorrect={false}
-                           editable={true}
-                           selectTextOnFocus={false}
-                         />
-                       </View>
-                       {errors[`mascota_${index}`] && (
-                         <Text style={styles.errorText}>{errors[`mascota_${index}`]}</Text>
-                       )}
-                     </View>
+                    <View style={styles.inputContainer}>
+                      <Text style={[styles.label, {color: theme.secondaryColor}]}>Número de Chip *</Text>
+                      <View style={[styles.inputWrapper, errors[`mascota_${index}`] && styles.inputError]}>
+                        <MaterialIcons name="memory" size={20} color={theme.greyMedium} style={styles.inputIcon} />
+                        <TextInput
+                          style={styles.inputNoOutline}
+                          value={mascota.chip || ''}
+                          onChangeText={(text) => {
+                            const numericValue = text.replace(/[^0-9]/g, '').slice(0, 15);
+                            setFormData(prevData => {
+                              const updatedMascotas = prevData.mascotas.map((mascotaItem, i) => {
+                                if (i === index) {
+                                  return {
+                                    ...mascotaItem,
+                                    chip: numericValue
+                                  };
+                                }
+                                return { ...mascotaItem };
+                              });
+                              return {
+                                ...prevData,
+                                mascotas: updatedMascotas
+                              };
+                            });
+                            if (errors[`mascota_${index}`]) {
+                              setErrors(prev => ({ ...prev, [`mascota_${index}`]: null }));
+                            }
+                          }}
+                          placeholder="Escribe 15 números"
+                          keyboardType="numeric"
+                          maxLength={15}
+                          placeholderTextColor={theme.greyMedium}
+                          autoComplete="off"
+                          autoCorrect={false}
+                          editable={true}
+                          selectTextOnFocus={false}
+                        />
+                      </View>
+                      {errors[`mascota_${index}`] && (
+                        <Text style={styles.errorText}>{errors[`mascota_${index}`]}</Text>
+                      )}
+                    </View>
                   </View>
                 ))}
               </FadeInSection>
@@ -1167,11 +1143,18 @@ export default function DatosCompletosPage() {
               <FadeInSection animationKey="submit-button" style={styles.submitButtonContainer}>
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                   <TouchableOpacity
-                    style={styles.submitButton}
+                    style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
                     onPress={handleSubmit}
+                    disabled={isLoading}
                   >
-                    <Text style={styles.submitButtonText}>Continuar al Pago</Text>
-                    <MaterialIcons name="arrow-forward" size={24} color={theme.white} />
+                    {isLoading ? (
+                      <ActivityIndicator color={theme.white} size="small" />
+                    ) : (
+                      <>
+                        <Text style={styles.submitButtonText}>Continuar al Pago</Text>
+                        <MaterialIcons name="arrow-forward" size={24} color={theme.white} />
+                      </>
+                    )}
                   </TouchableOpacity>
                 </Animated.View>
               </FadeInSection>
@@ -1220,12 +1203,27 @@ export default function DatosCompletosPage() {
                 <View style={styles.resumenCardHeader}>
                   <MaterialCommunityIcons name="account-circle" size={36} color={theme.primaryColor} style={styles.cardIcon} />
                   <Text style={styles.resumenCardTitle}>Datos Personales</Text>
-                  <View style={styles.badge}><Text style={styles.badgeText}>¡Tú!</Text></View>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>¡Tú!</Text>
+                  </View>
                 </View>
                 <View style={styles.resumenCardBody}>
-                  <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Tipo de Documento:</Text> {formData.tipoDocumento}</Text>
-                  <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>{formData.tipoDocumento}:</Text> {formData.numeroDocumento}</Text>
-                  <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Nacimiento:</Text> {formData.fechaNacimiento && !isNaN(new Date(formData.fechaNacimiento).getTime()) ? new Date(formData.fechaNacimiento).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : 'No especificada'}</Text>
+                  <Text style={styles.resumenDato}>
+                    <Text style={styles.resumenLabel}>Tipo de Documento: </Text>
+                    <Text>{formData.tipoDocumento}</Text>
+                  </Text>
+                  <Text style={styles.resumenDato}>
+                    <Text style={styles.resumenLabel}>{formData.tipoDocumento}: </Text>
+                    <Text>{formData.numeroDocumento}</Text>
+                  </Text>
+                  <Text style={styles.resumenDato}>
+                    <Text style={styles.resumenLabel}>Nacimiento: </Text>
+                    <Text>
+                      {formData.fechaNacimiento && !isNaN(new Date(formData.fechaNacimiento).getTime()) 
+                        ? new Date(formData.fechaNacimiento).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) 
+                        : 'No especificada'}
+                    </Text>
+                  </Text>
                 </View>
               </FadeInSection>
 
@@ -1233,18 +1231,34 @@ export default function DatosCompletosPage() {
                 <View style={styles.resumenCardHeader}>
                   <MaterialCommunityIcons name="map-marker-radius" size={36} color={theme.accentColor} style={styles.cardIcon} />
                   <Text style={styles.resumenCardTitle}>Dirección</Text>
-                  <View style={[styles.badge, {backgroundColor: theme.accentColor+'33'}]}><Text style={[styles.badgeText, {color: theme.accentColor}]}>Hogar</Text></View>
+                  <View style={[styles.badge, {backgroundColor: theme.accentColor+'33'}]}>
+                    <Text style={[styles.badgeText, {color: theme.accentColor}]}>Hogar</Text>
+                  </View>
                 </View>
                 <View style={styles.resumenCardBody}>
                   <Text style={styles.resumenDato}>
-                    <Text style={styles.resumenLabel}>Dirección:</Text> 
-                    {` ${tiposVia.find(t => t.value === formData.tipoVia)?.label || formData.tipoVia} ${formData.nombreVia} ${formData.numero}`}
-                    {formData.escalera ? `, Escalera ${formData.escalera}` : ''}
-                    {`, ${formData.piso}, Puerta ${formData.puerta}`}
+                    <Text style={styles.resumenLabel}>Dirección: </Text>
+                    <Text>
+                      {tiposVia.find(t => t.value === formData.tipoVia)?.label || formData.tipoVia}
+                      {formData.nombreVia ? ` ${formData.nombreVia}` : ''}
+                      {formData.numero ? ` ${formData.numero}` : ''}
+                      {formData.escalera ? `, Escalera ${formData.escalera}` : ''}
+                      {formData.piso ? `, ${formData.piso}` : ''}
+                      {formData.puerta ? `, Puerta ${formData.puerta}` : ''}
+                    </Text>
                   </Text>
-                  <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Código Postal:</Text> {formData.codigoPostal}</Text>
-                  <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Provincia:</Text> {formData.provincia || 'No especificada'}</Text>
-                  <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Comunidad:</Text> {formData.comunidadAutonoma || 'No especificada'}</Text>
+                  <Text style={styles.resumenDato}>
+                    <Text style={styles.resumenLabel}>Código Postal: </Text>
+                    <Text>{formData.codigoPostal}</Text>
+                  </Text>
+                  <Text style={styles.resumenDato}>
+                    <Text style={styles.resumenLabel}>Provincia: </Text>
+                    <Text>{formData.provincia || 'No especificada'}</Text>
+                  </Text>
+                  <Text style={styles.resumenDato}>
+                    <Text style={styles.resumenLabel}>Comunidad: </Text>
+                    <Text>{formData.comunidadAutonoma || 'No especificada'}</Text>
+                  </Text>
                 </View>
               </FadeInSection>
 
@@ -1252,15 +1266,23 @@ export default function DatosCompletosPage() {
                 <View style={styles.resumenCardHeader}>
                   <MaterialCommunityIcons name="paw" size={36} color={theme.success} style={styles.cardIcon} />
                   <Text style={styles.resumenCardTitle}>Mascotas</Text>
-                  <View style={[styles.badge, {backgroundColor: theme.success+'33'}]}><Text style={[styles.badgeText, {color: theme.success}]}>Peludos</Text></View>
+                  <View style={[styles.badge, {backgroundColor: theme.success+'33'}]}>
+                    <Text style={[styles.badgeText, {color: theme.success}]}>Peludos</Text>
+                  </View>
                 </View>
                 <View style={styles.resumenCardBody}>
                   {formData.mascotas.map((m, i) => (
                     <View key={i} style={styles.petRow}>
                       <MaterialCommunityIcons name={m.tipo === 'gato' ? "cat" : "dog"} size={24} color={theme.primaryColor} style={{marginRight: 8}} />
                       <View>
-                        <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Nombre:</Text> {m.nombre}</Text>
-                        <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Chip:</Text> {m.chip}</Text>
+                        <Text style={styles.resumenDato}>
+                          <Text style={styles.resumenLabel}>Nombre: </Text>
+                          <Text>{m.nombre ? m.nombre : 'Sin nombre'}</Text>
+                        </Text>
+                        <Text style={styles.resumenDato}>
+                          <Text style={styles.resumenLabel}>Chip: </Text>
+                          <Text>{m.chip ? m.chip : 'Sin chip'}</Text>
+                        </Text>
                       </View>
                     </View>
                   ))}
@@ -1272,11 +1294,19 @@ export default function DatosCompletosPage() {
                   <View style={styles.resumenCardHeader}>
                     <MaterialCommunityIcons name="shield-check" size={36} color={theme.secondaryColor} style={styles.cardIcon} />
                     <Text style={styles.resumenCardTitle}>Plan Seleccionado</Text>
-                    <View style={[styles.badge, {backgroundColor: theme.secondaryColor+'33'}]}><Text style={[styles.badgeText, {color: theme.secondaryColor}]}>Seguro</Text></View>
+                    <View style={[styles.badge, {backgroundColor: theme.secondaryColor+'33'}]}>
+                      <Text style={[styles.badgeText, {color: theme.secondaryColor}]}>Seguro</Text>
+                    </View>
                   </View>
                   <View style={styles.resumenCardBody}>
-                    <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Plan:</Text> {formData.planSeleccionado.nombre}</Text>
-                    <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Precio base:</Text> {formData.planSeleccionado.precio?.toFixed(2)}€/mes</Text>
+                    <Text style={styles.resumenDato}>
+                      <Text style={styles.resumenLabel}>Plan: </Text>
+                      <Text>{formData.planSeleccionado?.nombre || 'No especificado'}</Text>
+                    </Text>
+                    <Text style={styles.resumenDato}>
+                      <Text style={styles.resumenLabel}>Precio base: </Text>
+                      <Text>{formData.planSeleccionado?.precio?.toFixed(2)}€/mes</Text>
+                    </Text>
                   </View>
                 </FadeInSection>
               )}
@@ -1285,21 +1315,24 @@ export default function DatosCompletosPage() {
                 <View style={styles.resumenCardHeader}>
                   <MaterialCommunityIcons name="account-cash" size={36} color={theme.error} style={styles.cardIcon} />
                   <Text style={styles.resumenCardTitle}>Seguro Responsabilidad Civil</Text>
-                  <View style={[styles.badge, {backgroundColor: theme.error+'33'}]}><Text style={[styles.badgeText, {color: theme.error}]}>Opcional</Text></View>
+                  <View style={[styles.badge, {backgroundColor: theme.error+'33'}]}>
+                    <Text style={[styles.badgeText, {color: theme.error}]}>Opcional</Text>
+                  </View>
                 </View>
                 <View style={styles.resumenCardBody}>
-                  <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 8, justifyContent: 'space-between'}}>
-                    <Text style={[styles.resumenDato, { flex: 1 }]}>Añadir seguro de responsabilidad civil.</Text>
+                  <View style={styles.switchContainer}>
+                    <Text style={styles.resumenDato}>Añadir seguro de responsabilidad civil</Text>
                     <Switch
                       value={seguroCivil}
                       onValueChange={setSeguroCivil}
                       thumbColor={seguroCivil ? theme.primaryColor : theme.greyLight}
                       trackColor={{false: theme.greyMedium, true: theme.accentColor}}
-                      style={{marginLeft: 12}}
-                      ios_backgroundColor={theme.greyLight}
+                      style={styles.switch}
                     />
                   </View>
-                  {seguroCivil && <Text style={{color: theme.error, fontWeight: 'bold', textAlign:'right'}}>+{precioCivil.toFixed(2)}€/mes</Text>}
+                  {seguroCivil && (
+                    <Text style={styles.civilPriceText}>+{precioCivil.toFixed(2)}€/mes</Text>
+                  )}
                 </View>
               </FadeInSection>
 
@@ -1307,10 +1340,12 @@ export default function DatosCompletosPage() {
                 <View style={styles.resumenCardHeader}>
                   <MaterialCommunityIcons name="cash-multiple" size={36} color={theme.white} style={styles.cardIcon} />
                   <Text style={[styles.resumenCardTitle, {color: theme.white}]}>Precio Final Estimado</Text>
-                  <View style={[styles.badge, {backgroundColor: theme.white+'33'}]}><Text style={[styles.badgeText, {color: theme.white}]}>Total</Text></View>
+                  <View style={[styles.badge, {backgroundColor: theme.white+'33'}]}>
+                    <Text style={[styles.badgeText, {color: theme.white}]}>Total</Text>
+                  </View>
                 </View>
                 <View style={styles.resumenCardBody}>
-                  <Text style={[styles.finalPriceText, {color: theme.white, fontSize: 36, fontWeight: 'bold'}]}>
+                  <Text style={[styles.finalPriceText, {color: theme.white}]}>
                     {finalPrice.toFixed(2)}€/mes
                   </Text>
                 </View>
@@ -1318,24 +1353,24 @@ export default function DatosCompletosPage() {
 
               <TouchableOpacity 
                 style={styles.resumenSubmitButton} 
-                onPress={() => {
-                    if (Platform.OS === 'web') {
-                        window.alert('¡Datos enviados!', 'Tu solicitud ha sido registrada. (Simulación)');
-                    } else {
-                        Alert.alert('¡Datos enviados!', 'Tu solicitud ha sido registrada. (Simulación)');
-                    }
-                    router.replace('/');
-                }}
-              > 
-                <Text style={styles.resumenSubmitButtonText}>Confirmar y Enviar</Text>
-                <MaterialIcons name="check-circle" size={28} color={theme.white} style={{marginLeft: 12}} />
+                onPress={handleSubmit}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={theme.white} size="small" />
+                ) : (
+                  <>
+                    <Text style={styles.resumenSubmitButtonText}>Confirmar y Enviar</Text>
+                    <MaterialIcons name="check-circle" size={28} color={theme.white} style={styles.submitButtonIcon} />
+                  </>
+                )}
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.resumenSubmitButton, {backgroundColor: theme.greyMedium, marginTop: spacing.medium}]} 
+                style={[styles.resumenSubmitButton, {backgroundColor: theme.greyMedium}]} 
                 onPress={() => setShowResumen(false)}
-              > 
-                <MaterialIcons name="edit" size={24} color={theme.white} style={{marginRight: 12}} />
+              >
+                <MaterialIcons name="edit" size={24} color={theme.white} style={styles.editButtonIcon} />
                 <Text style={styles.resumenSubmitButtonText}>Editar Datos</Text>
               </TouchableOpacity>
 
@@ -1591,6 +1626,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.3)',
     position: 'relative',
     overflow: 'hidden',
+  },
+  submitButtonDisabled: {
+    backgroundColor: theme.greyMedium,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   submitButtonText: {
     ...typography.button,
@@ -1864,6 +1903,26 @@ const styles = StyleSheet.create({
     color: theme.error,
     textAlign: 'center',
     fontWeight: '600',
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.small,
+  },
+  switch: {
+    marginLeft: spacing.medium,
+  },
+  civilPriceText: {
+    color: theme.error,
+    fontWeight: 'bold',
+    textAlign: 'right',
+  },
+  submitButtonIcon: {
+    marginLeft: spacing.medium,
+  },
+  editButtonIcon: {
+    marginRight: spacing.medium,
   },
 });
 
