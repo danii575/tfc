@@ -25,7 +25,6 @@ import comunidades from '../data/comunidades.json';
 import { doc, updateDoc, collection, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { updateProfile } from 'firebase/auth';
-//hola 
 
 // --- Definiciones de Tema y Estilo ---
 const theme = {
@@ -1169,36 +1168,14 @@ export default function DatosCompletosPage() {
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                   <TouchableOpacity
                     style={styles.submitButton}
-                    onPress={() => {
-                    console.log("[DatosCompletos] Navegando a pasarela de pago");
-                    
-                    // Obtener datos del plan seleccionado o usar valores por defecto
-                    const planNombre = formData.planSeleccionado?.nombre || 'Plan Básico';
-                    const precioBase = formData.planSeleccionado?.precio || 29.00;
-                    const precioTotal = precioBase + (seguroCivil ? precioCivil : 0);
-                    
-                    const pagoParams = {
-                      planNombre: planNombre,
-                      precioBase: precioBase.toFixed(2),
-                      seguroCivil: seguroCivil.toString(),
-                      precioTotal: precioTotal.toFixed(2),
-                      fromDatosCompletos: 'true'
-                    };
-                    
-                    console.log("[DatosCompletos] Parámetros de pago:", pagoParams);
-                    router.push({
-                      pathname: '/pasarelaPago',
-                      params: pagoParams
-                    });
-                  }}
-                >
-                  <Text style={styles.submitButtonText}>Continuar al Pago</Text>
-                  <MaterialIcons name="arrow-forward" size={24} color={theme.white} />
-                </TouchableOpacity>
+                    onPress={handleSubmit}
+                  >
+                    <Text style={styles.submitButtonText}>Continuar al Pago</Text>
+                    <MaterialIcons name="arrow-forward" size={24} color={theme.white} />
+                  </TouchableOpacity>
                 </Animated.View>
               </FadeInSection>
 
-              {/* Botón para ir atrás */}
               <FadeInSection animationKey="back-button" style={styles.backButtonContainer}>
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                   <TouchableOpacity
@@ -1207,7 +1184,6 @@ export default function DatosCompletosPage() {
                       console.log("[DatosCompletos] Navegando a presupuestoFinal");
                       console.log("[DatosCompletos] Parámetros actuales para volver:", params);
                       
-                      // Navegar de vuelta con los parámetros originales para preservar el estado
                       const backParams = {
                         animals: params.animals,
                         ownerData: params.ownerData,
