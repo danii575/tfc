@@ -1,6 +1,6 @@
 // components/Header.js
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated, Alert, Dimensions } from 'react-native';
 import { useRouter, usePathname } from 'expo-router'; 
 import { getAuth, signOut } from 'firebase/auth'; 
 import { app as firebaseApp } from '../firebase/firebaseConfig'; 
@@ -46,6 +46,28 @@ const Header = (props) => {
   const pathname = usePathname(); 
   const { currentUser, userData } = useAuth(); 
 
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerAnim = useRef(new Animated.Value(0)).current;
+  const screenWidth = Dimensions.get('window').width;
+
+  const isMobile = Platform.OS !== 'web' || screenWidth < 700;
+
+  const openDrawer = () => {
+    setDrawerOpen(true);
+    Animated.timing(drawerAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
+  const closeDrawer = () => {
+    Animated.timing(drawerAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: false,
+    }).start(() => setDrawerOpen(false));
+  };
+
   const handleLogout = async () => {
     console.log("[Header] Cerrando sesión...");
     const authInstance = getAuth(firebaseApp);
@@ -75,16 +97,16 @@ const Header = (props) => {
   const showNavLinks = pathname !== '/login' && pathname !== '/registro';
 
   return (
-    <View style={styles.headerContainer}>
-      {/* Sección Izquierda (puede ser un espaciador o parte del logo si se quiere más a la izquierda) */}
+    <View style={[styles.headerContainer, isMobile && styles.headerContainerMobile]}>
+      {/* Sección Izquierda (logo) */}
       <View style={styles.leftSection}>
         <TouchableOpacity onPress={() => handleNav(null, '/', onNavigateToHome)} activeOpacity={0.7}>
             <Text style={styles.logo}>🐾 PetCareSeguros</Text>
         </TouchableOpacity>
       </View>
       
-      {/* Sección Central (Enlaces de Navegación - se centrarán si left/right tienen flex similar o si este tiene flex mayor) */}
-      {showNavLinks && (
+      {/* Sección Central (enlaces de navegación) */}
+      {showNavLinks && !isMobile && (
         <View style={styles.centerSection}>
           <HeaderHoverable onPress={() => handleNav(null, '/#plans', onNavigateToPlans)} style={styles.navItemContainer} hoverStyle={styles.navItemHover}><Text style={styles.navItemText}>Planes</Text></HeaderHoverable>
           <HeaderHoverable onPress={() => handleNav(null, '/#steps', onNavigateToServices)} style={styles.navItemContainer} hoverStyle={styles.navItemHover}><Text style={styles.navItemText}>Servicios</Text></HeaderHoverable>
@@ -94,34 +116,82 @@ const Header = (props) => {
       )}
       {!showNavLinks && <View style={styles.centerSectionPlaceholder} /> /* Espaciador si no hay links */}
 
-
-      {/* Sección Derecha (Controles de Autenticación) */}
+      {/* Sección Derecha (Controles de Autenticación o menú hamburguesa en móvil) */}
       <View style={styles.rightSection}>
-        {currentUser ? (
-          <>
-            <Text style={styles.userNameText} numberOfLines={1}>
-              Hola, {userData?.nombreCompleto || userData?.nombre || currentUser.displayName || currentUser.email?.split('@')[0]}
-            </Text>
-            <HeaderHoverable onPress={handleLogout} style={styles.authButton} hoverStyle={styles.loginButtonHover} isButton={true}>
-              <MaterialIcons name="logout" size={18} color={COLORS.primary} style={{marginRight: spacing.small / 2}} />
-              <Text style={styles.authButtonText}>Salir</Text>
-            </HeaderHoverable>
-          </>
+        {isMobile ? (
+          <TouchableOpacity onPress={openDrawer} style={{ marginLeft: 12 }}>
+            <MaterialIcons name="menu" size={32} color={COLORS.primary} />
+          </TouchableOpacity>
         ) : (
-          <>
-            {pathname !== '/login' && (
-                <HeaderHoverable onPress={() => router.push('/login')} style={styles.loginButton} hoverStyle={styles.loginButtonHover} isButton={true}>
-                <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
-                </HeaderHoverable>
-            )}
-            {pathname !== '/registro' && (
-                <HeaderHoverable onPress={() => router.push('/registro')} style={styles.signupButton} hoverStyle={styles.signupButtonHover} isButton={true}>
-                <Text style={styles.signupButtonText}>Registrarse</Text>
-                </HeaderHoverable>
-            )}
-          </>
+          currentUser ? (
+            <>
+              <Text style={styles.userNameText} numberOfLines={1}>
+                Hola, {userData?.nombreCompleto || userData?.nombre || currentUser.displayName || currentUser.email?.split('@')[0]}
+              </Text>
+              <HeaderHoverable onPress={handleLogout} style={styles.authButton} hoverStyle={styles.loginButtonHover} isButton={true}>
+                <MaterialIcons name="logout" size={18} color={COLORS.primary} style={{marginRight: spacing.small / 2}} />
+                <Text style={styles.authButtonText}>Salir</Text>
+              </HeaderHoverable>
+            </>
+          ) : (
+            <>
+              {pathname !== '/login' && (
+                  <HeaderHoverable onPress={() => router.push('/login')} style={styles.loginButton} hoverStyle={styles.loginButtonHover} isButton={true}>
+                  <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+                  </HeaderHoverable>
+              )}
+              {pathname !== '/registro' && (
+                  <HeaderHoverable onPress={() => router.push('/registro')} style={styles.signupButton} hoverStyle={styles.signupButtonHover} isButton={true}>
+                  <Text style={styles.signupButtonText}>Registrarse</Text>
+                  </HeaderHoverable>
+              )}
+            </>
+          )
         )}
       </View>
+
+      {/* Drawer para móvil */}
+      {isMobile && drawerOpen && (
+        <>
+          {/* Fondo semitransparente */}
+          <TouchableOpacity style={styles.drawerOverlay} activeOpacity={1} onPress={closeDrawer} />
+          <Animated.View style={[styles.drawer, {
+            left: drawerAnim.interpolate({ inputRange: [0, 1], outputRange: [-260, 0] }),
+            shadowOpacity: drawerAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.18] }),
+          }]}
+          >
+            <View style={styles.drawerHeader}>
+              <Text style={styles.logo}>🐾 PetCareSeguros</Text>
+              <TouchableOpacity onPress={closeDrawer} style={{ marginLeft: 8 }}>
+                <MaterialIcons name="close" size={28} color={COLORS.primary} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.drawerLinks}>
+              <TouchableOpacity onPress={() => { closeDrawer(); handleNav(null, '/#plans', onNavigateToPlans); }} style={styles.drawerLink}><Text style={styles.navItemText}>Planes</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => { closeDrawer(); handleNav(null, '/#steps', onNavigateToServices); }} style={styles.drawerLink}><Text style={styles.navItemText}>Servicios</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => { closeDrawer(); handleNav(null, '/#about', onNavigateToAbout); }} style={styles.drawerLink}><Text style={styles.navItemText}>Sobre Nosotros</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => { closeDrawer(); handleNav(null, '/#contact', onNavigateToContact); }} style={styles.drawerLink}><Text style={styles.navItemText}>Contacto</Text></TouchableOpacity>
+            </View>
+            <View style={styles.drawerAuth}>
+              {currentUser ? (
+                <TouchableOpacity onPress={() => { closeDrawer(); handleLogout(); }} style={styles.drawerAuthButton}>
+                  <MaterialIcons name="logout" size={18} color={COLORS.primary} style={{marginRight: spacing.small / 2}} />
+                  <Text style={styles.authButtonText}>Salir</Text>
+                </TouchableOpacity>
+              ) : (
+                <>
+                  <TouchableOpacity onPress={() => { closeDrawer(); router.push('/login'); }} style={styles.drawerAuthButton}>
+                    <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => { closeDrawer(); router.push('/registro'); }} style={[styles.drawerAuthButton, styles.signupButton, { marginTop: 8 }]}> 
+                    <Text style={styles.signupButtonText}>Registrarse</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          </Animated.View>
+        </>
+      )}
     </View>
   );
 };
@@ -134,11 +204,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between', // Mantiene los elementos principales espaciados
     paddingVertical: 15,
-    paddingHorizontal: Platform.OS === 'web' ? 40 : 20,
+    paddingHorizontal: Platform.OS === 'web' ? 40 : 12, // Reducido en móvil
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
     ...(Platform.OS === 'web' && { boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }),
-    zIndex: 10, 
+    zIndex: 1000, // Aseguramos zIndex alto
+  },
+  headerContainerMobile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
   },
   leftSection: {
     // Podría tener un flex si el centerSection también lo tiene para balancear
@@ -231,6 +307,56 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: Platform.OS === 'web' ? 15 : 14,
     fontWeight: 'bold',
+  },
+  drawerOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    zIndex: 100,
+  },
+  drawer: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: 260,
+    height: '100%',
+    backgroundColor: COLORS.white,
+    zIndex: 101,
+    paddingTop: 24,
+    paddingHorizontal: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 0 },
+    shadowRadius: 12,
+    elevation: 8,
+    display: 'flex',
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+  },
+  drawerLinks: {
+    marginBottom: 32,
+  },
+  drawerLink: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGrey,
+  },
+  drawerAuth: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.lightGrey,
+    paddingTop: 18,
+  },
+  drawerAuthButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
   },
 });
 

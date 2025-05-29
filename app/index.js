@@ -114,7 +114,7 @@ const borderRadius = {
 };
 
 const maxWidth = 1200;
-const heroHeight = Platform.select({ web: 600, default: 480 });
+const heroHeight = Platform.select({ web: '100vh', default: 400 });
 
 // --- Imágenes y Constantes ---
 const images = {
@@ -495,6 +495,7 @@ const HeroSection = React.forwardRef(({ onPressPlans }, ref) => {
 });
 
 const AboutUsSection = React.forwardRef((props, ref) => {
+  const { isMobile } = props;
   return (
     <View ref={ref} style={[enhancedStyles.section, { backgroundColor: theme.offWhite }]}>
       <FadeInSection useNativeDriver={Platform.OS !== 'web'}
@@ -508,16 +509,16 @@ const AboutUsSection = React.forwardRef((props, ref) => {
             amantes de los animales trabajan 24/7 para ofrecer la mejor cobertura y
             atención integral, porque sabemos que son parte de tu familia.
           </Text>
-          <View style={enhancedStyles.statsContainer}>
-            <View style={enhancedStyles.statItem}>
+          <View style={[enhancedStyles.statsContainer, isMobile && { flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }]}> 
+            <View style={[enhancedStyles.statItem, isMobile && { alignItems: 'center', width: '100%' }]}> 
               <Text style={enhancedStyles.statNumber}>+50K</Text>
               <Text style={enhancedStyles.statLabel}>Mascotas Protegidas</Text>
             </View>
-            <View style={enhancedStyles.statItem}>
+            <View style={[enhancedStyles.statItem, isMobile && { alignItems: 'center', width: '100%' }]}> 
               <Text style={enhancedStyles.statNumber}>98%</Text>
               <Text style={enhancedStyles.statLabel}>Satisfacción Clientes</Text>
             </View>
-            <View style={enhancedStyles.statItem}>
+            <View style={[enhancedStyles.statItem, isMobile && { alignItems: 'center', width: '100%' }]}> 
               <Text style={enhancedStyles.statNumber}>24/7</Text>
               <Text style={enhancedStyles.statLabel}>Atención Veterinaria</Text>
             </View>
@@ -528,12 +529,12 @@ const AboutUsSection = React.forwardRef((props, ref) => {
   );
 });
 
-const StepCard = ({ step, index }) => {
+const StepCard = ({ step, index, isMobile }) => {
   return (
     <FadeInSection
       delay={index * 150}
       useNativeDriver={Platform.OS !== 'web'} // transform y opacity en web
-      style={enhancedStyles.stepCardWrapper}
+      style={[enhancedStyles.stepCardWrapper, isMobile && { width: '98%', maxWidth: '98%' }]}
     >
       <HoverCard style={enhancedStyles.stepCard}>
         <View style={enhancedStyles.stepIconWrapper}>
@@ -553,15 +554,16 @@ const StepCard = ({ step, index }) => {
 };
 
 const StepsSection = React.forwardRef((props, ref) => {
+  const { isMobile } = props;
   return (
     <View ref={ref} style={[enhancedStyles.section, { backgroundColor: theme.greyLight }]}>
       <View style={enhancedStyles.sectionContent}>
         <FadeInSection delay={0} useNativeDriver={Platform.OS !== 'web'} style={{marginBottom: spacing.large, width: '100%', alignItems: 'center'}}>
             <Text style={enhancedStyles.sectionTitle}>¿Cómo Funciona?</Text>
         </FadeInSection>
-        <View style={enhancedStyles.stepsCardsContainer}>
+        <View style={[enhancedStyles.stepsCardsContainer, isMobile && { flexDirection: 'column', alignItems: 'center' }]}> 
             {STEPS.map((step, index) => (
-              <StepCard key={step.id} step={step} index={index} />
+              <StepCard key={step.id} step={step} index={index} isMobile={isMobile} />
             ))}
         </View>
       </View>
@@ -569,12 +571,12 @@ const StepsSection = React.forwardRef((props, ref) => {
   );
 });
 
-const PlanCard = ({ plan, onSelect, index }) => {
+const PlanCard = ({ plan, onSelect, index, isMobile }) => {
   return (
     <FadeInSection
       delay={index * 150}
       useNativeDriver={Platform.OS !== 'web'}
-      style={enhancedStyles.planCardWrapper}
+      style={[enhancedStyles.planCardWrapper, isMobile && { width: '98%', maxWidth: '98%' }]}
     >
       <HoverCard
         style={[
@@ -628,16 +630,16 @@ const PlanCard = ({ plan, onSelect, index }) => {
 };
 
 
-const PlansSection = React.forwardRef(({ onSelectPlan }, ref) => {
+const PlansSection = React.forwardRef(({ onSelectPlan, isMobile }, ref) => {
   return (
     <View ref={ref} style={[enhancedStyles.section, { backgroundColor: theme.white }]}>
       <View style={enhancedStyles.sectionContent}>
           <FadeInSection delay={0} useNativeDriver={Platform.OS !== 'web'} style={{marginBottom: spacing.large, width: '100%', alignItems: 'center'}}>
             <Text style={enhancedStyles.sectionTitle}>Nuestros Planes</Text>
         </FadeInSection>
-        <View style={enhancedStyles.plansCardsContainer}>
+        <View style={[enhancedStyles.plansCardsContainer, isMobile && { flexDirection: 'column', alignItems: 'center' }]}> 
             {PLANS.map((plan, index) => (
-              <PlanCard key={plan.id} plan={plan} onSelect={() => onSelectPlan(plan)} index={index} />
+              <PlanCard key={plan.id} plan={plan} onSelect={() => onSelectPlan(plan)} index={index} isMobile={isMobile} />
             ))}
         </View>
       </View>
@@ -909,7 +911,7 @@ const enhancedStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: spacing.large,
-    paddingVertical: spacing.ultraLarge + spacing.medium,
+    paddingVertical: spacing.large,
   },
   heroContent: {
     maxWidth: 750,
@@ -995,16 +997,16 @@ const enhancedStyles = StyleSheet.create({
   stepsCardsContainer: {
       flexDirection: Platform.OS === 'web' ? 'row' : 'column',
       justifyContent: 'center',
-      alignItems: Platform.OS === 'web' ? 'stretch' : 'center', // stretch para igualar alturas en web si las cards son flex:1
-      flexWrap: 'wrap', // Permitir que las tarjetas pasen a la siguiente línea si no caben
+      alignItems: Platform.OS === 'web' ? 'stretch' : 'center',
+      flexWrap: 'wrap',
       width: '100%',
-      gap: spacing.large, // Espacio entre tarjetas (CSS Grid Gap)
+      gap: spacing.large,
   },
   stepCardWrapper: {
-      width: Platform.OS === 'web' ? '30%' : '90%', // En web, 3 tarjetas por fila aprox.
-      maxWidth: Platform.OS === 'web' ? 340 : 400, // Ancho máximo por tarjeta
-      alignItems: 'stretch', // Para que la HoverCard (hija) se estire
-      marginBottom: Platform.OS === 'web' ? 0 : spacing.large, // Espacio inferior en móvil
+      width: Platform.OS === 'web' ? '30%' : '98%', // Más ancho en móvil
+      maxWidth: Platform.OS === 'web' ? 340 : '98%', // Ocupa casi todo el ancho en móvil
+      alignItems: 'stretch',
+      marginBottom: Platform.OS === 'web' ? 0 : spacing.large,
   },
   stepCard: {
     padding: spacing.large,
@@ -1041,8 +1043,8 @@ const enhancedStyles = StyleSheet.create({
       gap: spacing.large,
   },
   planCardWrapper: {
-      width: Platform.OS === 'web' ? '30%' : '90%',
-      maxWidth: Platform.OS === 'web' ? 380 : 420,
+      width: Platform.OS === 'web' ? '30%' : '98%', // Más ancho en móvil
+      maxWidth: Platform.OS === 'web' ? 380 : '98%', // Ocupa casi todo el ancho en móvil
       alignItems: 'stretch',
       marginBottom: Platform.OS === 'web' ? 0 : spacing.large,
   },
@@ -1324,7 +1326,7 @@ const enhancedStyles = StyleSheet.create({
 
   // --- Sección Estadísticas (dentro de "Quiénes Somos") ---
   statsContainer: {
-    flexDirection: "row", // Items en fila
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
     justifyContent: "space-around", // Distribuir espacio
     marginTop: spacing.large + 10,
     width: "100%",
@@ -1335,7 +1337,8 @@ const enhancedStyles = StyleSheet.create({
   statItem: {
     alignItems: "center", // Centrar número y etiqueta
     marginBottom: spacing.medium,
-    minWidth: 150, // Ancho mínimo por item
+    minWidth: Platform.OS === "web" ? 150 : '80%',
+    width: Platform.OS === "web" ? undefined : '100%',
     padding: spacing.small,
   },
   statNumber: {
@@ -1430,6 +1433,8 @@ const enhancedStyles = StyleSheet.create({
 export default function IndexPage() {
   const router = useRouter();
   const scrollViewRef = useRef(null);
+  const { width } = useWindowDimensions();
+  const isMobile = width < 700;
 
   const heroSectionRef = useRef(null);
   const aboutUsSectionRef = useRef(null); // ID: about
@@ -1507,9 +1512,9 @@ export default function IndexPage() {
         scrollEventThrottle={16} // Para animaciones basadas en scroll si las hubiera
       >
         <HeroSection ref={heroSectionRef} onPressPlans={handleScrollToPlans} />
-        <AboutUsSection ref={aboutUsSectionRef} />
-        <StepsSection ref={stepsSectionRef} />
-        <PlansSection ref={plansSectionRef} onSelectPlan={handleSelectPlan} />
+        <AboutUsSection ref={aboutUsSectionRef} isMobile={isMobile} />
+        <StepsSection ref={stepsSectionRef} isMobile={isMobile} />
+        <PlansSection ref={plansSectionRef} onSelectPlan={handleSelectPlan} isMobile={isMobile} />
         <TestimonialsSection ref={testimonialsSectionRef} />
         <CommunitySection ref={communitySectionRef} />
         <FAQSection ref={faqSectionRef} />
