@@ -112,6 +112,7 @@ const Header = (props) => {
           <HeaderHoverable onPress={() => handleNav(null, '/#steps', onNavigateToServices)} style={styles.navItemContainer} hoverStyle={styles.navItemHover}><Text style={styles.navItemText}>Servicios</Text></HeaderHoverable>
           <HeaderHoverable onPress={() => handleNav(null, '/#about', onNavigateToAbout)} style={styles.navItemContainer} hoverStyle={styles.navItemHover}><Text style={styles.navItemText}>Sobre Nosotros</Text></HeaderHoverable>
           <HeaderHoverable onPress={() => handleNav(null, '/#contact', onNavigateToContact)} style={styles.navItemContainer} hoverStyle={styles.navItemHover}><Text style={styles.navItemText}>Contacto</Text></HeaderHoverable>
+          <HeaderHoverable onPress={() => router.push('/organizaciones')} style={styles.navItemContainer} hoverStyle={styles.navItemHover}><Text style={styles.navItemText}>Organizaciones</Text></HeaderHoverable>
         </View>
       )}
       {!showNavLinks && <View style={styles.centerSectionPlaceholder} /> /* Espaciador si no hay links */}
@@ -171,6 +172,7 @@ const Header = (props) => {
               <TouchableOpacity onPress={() => { closeDrawer(); handleNav(null, '/#steps', onNavigateToServices); }} style={styles.drawerLink}><Text style={styles.navItemText}>Servicios</Text></TouchableOpacity>
               <TouchableOpacity onPress={() => { closeDrawer(); handleNav(null, '/#about', onNavigateToAbout); }} style={styles.drawerLink}><Text style={styles.navItemText}>Sobre Nosotros</Text></TouchableOpacity>
               <TouchableOpacity onPress={() => { closeDrawer(); handleNav(null, '/#contact', onNavigateToContact); }} style={styles.drawerLink}><Text style={styles.navItemText}>Contacto</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => { closeDrawer(); router.push('/organizaciones'); }} style={styles.drawerLink}><Text style={styles.navItemText}>Organizaciones</Text></TouchableOpacity>
             </View>
             <View style={styles.drawerAuth}>
               {currentUser ? (

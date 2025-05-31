@@ -769,24 +769,22 @@ const FAQSection = React.forwardRef((props, ref) => {
 });
 
 
-const ProtectPetCTASection = () => {
+const ProtectPetCTASection = React.forwardRef((props, ref) => {
   const router = useRouter();
+  const { isMobile } = props;
 
   const handleHireNow = () => {
-    // Redirige a la página de presupuesto en lugar de registro
     router.push('/presupuesto');
-    // console.log("Contratar Ahora presionado, redirigiendo a presupuesto");
   };
 
   const handleContactAdvisor = () => {
     console.log("Contactar con un Asesor presionado");
-    // Aquí podrías navegar a una pantalla de contacto o abrir un mailto/tel link
   };
 
   return (
-    <View style={[enhancedStyles.section, { backgroundColor: theme.primaryColor }]}>
-      <FadeInSection useNativeDriver={Platform.OS !== 'web'} style={{width: '100%', alignItems: 'center'}}>
-        <View style={enhancedStyles.protectPetCtaContent}>
+    <View ref={ref} style={[enhancedStyles.section, { backgroundColor: theme.primaryColor }]}>
+      <View style={enhancedStyles.sectionContent}>
+        <FadeInSection useNativeDriver={Platform.OS !== 'web'} style={{width: '100%', alignItems: 'center'}}>
           <Text style={enhancedStyles.protectPetCtaTitle}>
             ¿Listo para Proteger a tu Mejor Amigo?
           </Text>
@@ -794,7 +792,7 @@ const ProtectPetCTASection = () => {
             Únete hoy a PetCareSeguros y dale a tu mascota la seguridad y el cuidado que se merece.
             Contratación rápida y sencilla.
           </Text>
-          <View style={enhancedStyles.protectPetCtaButtonsContainer}>
+          <View style={[enhancedStyles.protectPetCtaButtonsContainer, isMobile && { flexDirection: 'column', width: '100%' }]}>
             <HoverButton
               style={[enhancedStyles.protectPetCtaButton, enhancedStyles.protectPetCtaButtonPrimary]}
               hoverStyle={enhancedStyles.buttonHoverWhiteDarker}
@@ -812,11 +810,11 @@ const ProtectPetCTASection = () => {
               <MaterialIcons name="support-agent" size={20} color={theme.white} style={{ marginLeft: 8 }}/>
             </HoverButton>
           </View>
-        </View>
-      </FadeInSection>
+        </FadeInSection>
+      </View>
     </View>
   );
-};
+});
 
 const FooterLink = ({ onPress, children }) => {
     const [isHovered, setIsHovered] = useState(false);
@@ -1272,39 +1270,40 @@ const enhancedStyles = StyleSheet.create({
     maxWidth: maxWidth,
     paddingHorizontal: spacing.large,
     alignItems: "center",
+    justifyContent: "center",
   },
   protectPetCtaTitle: {
     ...typography.heading2,
-    color: theme.white, // Texto blanco sobre fondo primario
+    color: theme.white,
     marginBottom: spacing.medium,
     fontSize: Platform.OS === 'web' ? 32 : 28,
+    textAlign: "center",
   },
   protectPetCtaSubtitle: {
     ...typography.body,
     color: theme.white,
-    maxWidth: 650, // Limitar ancho del subtítulo
+    maxWidth: 650,
     marginBottom: spacing.large + 10,
     textAlign: "center",
     fontSize: 18,
     lineHeight: 28,
   },
   protectPetCtaButtonsContainer: {
-    flexDirection: Platform.OS === "web" ? "row" : "column", // Botones en fila en web, columna en móvil
-    justifyContent: "center",
-    alignItems: "center",
-    width: "100%",
-    maxWidth: 600, // Ancho máximo para el contenedor de botones
-    gap: spacing.medium, // Espacio entre botones
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.medium,
+    width: '100%',
+    marginTop: spacing.large,
   },
   protectPetCtaButton: {
-    paddingVertical: spacing.medium + 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.medium,
     paddingHorizontal: spacing.large,
-    borderRadius: 50, // Botones redondeados
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: 'row', // Alinear ícono y texto
-    minWidth: Platform.OS === "web" ? 240 : "85%", // Ancho mínimo
-    marginVertical: Platform.OS !== "web" ? spacing.small : 0, // Margen vertical en móvil
+    borderRadius: 50,
+    width: Platform.OS === 'web' ? 'auto' : '90%',
     ...theme.shadow,
   },
   protectPetCtaButtonPrimary: {
@@ -1518,7 +1517,7 @@ export default function IndexPage() {
         <TestimonialsSection ref={testimonialsSectionRef} />
         <CommunitySection ref={communitySectionRef} />
         <FAQSection ref={faqSectionRef} />
-        <ProtectPetCTASection />
+        <ProtectPetCTASection ref={contactSectionRef} isMobile={isMobile} />
         <Footer
           ref={contactSectionRef} // El ref para la sección de contacto es el Footer
           onNavigateToPlans={handleScrollToPlans}
