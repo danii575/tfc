@@ -19,9 +19,12 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import Header from '../components/Header';
 import { FadeInSection } from '../components/FadeInSection';
 import { useAuth } from './_layout';
-import { doc, updateDoc, collection, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
-//hola 
+import { loadStripe } from '@stripe/stripe-js';
+
+// Clave pública de Stripe (deberías obtenerla de tu cuenta de Stripe)
+const STRIPE_PUBLISHABLE_KEY = 'pk_test_51RSfbRQYSZMbABiaTC68nu8w7OSLhsZtFaurYBKwYIiA8GOawAY9MEoWQ6GOV0hAjuoFjFJI0jyGeNzlJtDiZ5yK00xxTGWwsl';
 
 // --- Definiciones de Tema ---
 const theme = {
@@ -125,7 +128,60 @@ const AnimatedInput = ({ style, onFocus, onBlur, error, ...props }) => {
 // --- Funciones de Validación ---
 const validarTarjeta = (numero) => {
   const numeroLimpio = numero.replace(/\s/g, '');
-  if (!/^\d{13,19}$/.test(numeroLimpio)) return false;
+  
+  // Validar longitud básica
+  if (!/^\d{13,19}$/.test(numeroLimpio)) {
+    return { valido: false, mensaje: 'El número de tarjeta debe tener entre 13 y 19 dígitos' };
+  }
+  
+  // Detectar tipo de tarjeta y país
+  let tipoTarjeta = 'unknown';
+  let paisTarjeta = 'unknown';
+  let token = '';
+  
+  // Detección de marca y país
+  if (/^4/.test(numeroLimpio)) {
+    tipoTarjeta = 'visa';
+    if (numeroLimpio.startsWith('4242')) {
+      paisTarjeta = 'us';
+      token = 'tok_visa';
+    } else if (numeroLimpio.startsWith('4000')) {
+      if (numeroLimpio.startsWith('400000')) {
+        paisTarjeta = 'es';
+        token = 'tok_es';
+      } else if (numeroLimpio.startsWith('400001')) {
+        paisTarjeta = 'fr';
+        token = 'tok_fr';
+      } else if (numeroLimpio.startsWith('400002')) {
+        paisTarjeta = 'de';
+        token = 'tok_de';
+      } else if (numeroLimpio.startsWith('400003')) {
+        paisTarjeta = 'it';
+        token = 'tok_it';
+      } else if (numeroLimpio.startsWith('400004')) {
+        paisTarjeta = 'gb';
+        token = 'tok_gb';
+      }
+    }
+  } else if (/^5[1-5]/.test(numeroLimpio)) {
+    tipoTarjeta = 'mastercard';
+    token = 'tok_mastercard';
+  } else if (/^3[47]/.test(numeroLimpio)) {
+    tipoTarjeta = 'amex';
+    token = 'tok_amex';
+  } else if (/^6/.test(numeroLimpio)) {
+    tipoTarjeta = 'discover';
+    token = 'tok_discover';
+  } else if (/^3[0-9]/.test(numeroLimpio)) {
+    tipoTarjeta = 'diners';
+    token = 'tok_diners';
+  } else if (/^35/.test(numeroLimpio)) {
+    tipoTarjeta = 'jcb';
+    token = 'tok_jcb';
+  } else if (/^62/.test(numeroLimpio)) {
+    tipoTarjeta = 'unionpay';
+    token = 'tok_unionpay';
+  }
   
   // Algoritmo de Luhn
   let suma = 0;
@@ -143,14 +199,27 @@ const validarTarjeta = (numero) => {
     alternar = !alternar;
   }
   
-  return suma % 10 === 0;
+  if (suma % 10 !== 0) {
+    return { valido: false, mensaje: 'Número de tarjeta inválido' };
+  }
+  
+  return { 
+    valido: true, 
+    tipo: tipoTarjeta,
+    pais: paisTarjeta,
+    token: token
+  };
 };
 
 const validarCVV = (cvv, tipoTarjeta) => {
   if (tipoTarjeta === 'amex') {
-    return /^\d{4}$/.test(cvv);
+    return /^\d{4}$/.test(cvv) ? 
+      { valido: true } : 
+      { valido: false, mensaje: 'El CVV debe tener 4 dígitos para American Express' };
   }
-  return /^\d{3}$/.test(cvv);
+  return /^\d{3}$/.test(cvv) ? 
+    { valido: true } : 
+    { valido: false, mensaje: 'El CVV debe tener 3 dígitos' };
 };
 
 const validarFechaExpiracion = (mes, año) => {
@@ -158,13 +227,21 @@ const validarFechaExpiracion = (mes, año) => {
   const añoNum = parseInt(año);
   const fechaActual = new Date();
   const mesActual = fechaActual.getMonth() + 1;
-  const añoActual = fechaActual.getFullYear() % 100;
+  const añoActual = fechaActual.getFullYear();
   
-  if (mesNum < 1 || mesNum > 12) return false;
-  if (añoNum < añoActual) return false;
-  if (añoNum === añoActual && mesNum < mesActual) return false;
+  if (mesNum < 1 || mesNum > 12) {
+    return { valido: false, mensaje: 'Mes inválido' };
+  }
   
-  return true;
+  if (añoNum < añoActual) {
+    return { valido: false, mensaje: 'Año inválido' };
+  }
+  
+  if (añoNum === añoActual && mesNum < mesActual) {
+    return { valido: false, mensaje: 'La tarjeta ha expirado' };
+  }
+  
+  return { valido: true };
 };
 
 const detectarTipoTarjeta = (numero) => {
@@ -188,6 +265,7 @@ export default function PasarelaPago() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();
+  const [stripe, setStripe] = useState(null);
   
   const [metodoPago, setMetodoPago] = useState('tarjeta');
   const [datosFormulario, setDatosFormulario] = useState({
@@ -196,7 +274,7 @@ export default function PasarelaPago() {
     mesExpiracion: '',
     añoExpiracion: '',
     cvv: '',
-    email: user?.email || '',
+    email: '',
     telefono: '',
     aceptaTerminos: false,
     aceptaMarketing: false,
@@ -207,6 +285,7 @@ export default function PasarelaPago() {
   const [showModal, setShowModal] = useState(false);
   const [pagoExitoso, setPagoExitoso] = useState(false);
   const [tipoTarjeta, setTipoTarjeta] = useState('unknown');
+  const [mensajeError, setMensajeError] = useState('');
   
   // Referencias para animaciones
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -215,6 +294,9 @@ export default function PasarelaPago() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
+  
+  // Añadir un estado y animación para el perro
+  const [dogAnim] = useState(new Animated.Value(0));
   
   // Datos del plan desde parámetros
   const planData = {
@@ -225,6 +307,30 @@ export default function PasarelaPago() {
   };
 
   const precioTotal = planData.precio + (planData.seguroCivil ? planData.precioCivil : 0);
+
+  // Cargar datos del usuario al montar el componente
+  useEffect(() => {
+    const cargarDatosUsuario = async () => {
+      if (user) {
+        try {
+          const userRef = doc(db, "usuarios", user.uid);
+          const userDoc = await getDoc(userRef);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setDatosFormulario(prev => ({
+              ...prev,
+              email: userData.email || user.email || '',
+              telefono: userData.telefono || '',
+            }));
+          }
+        } catch (error) {
+          console.error("Error cargando datos del usuario:", error);
+        }
+      }
+    };
+    
+    cargarDatosUsuario();
+  }, [user]);
 
   useEffect(() => {
     const tipo = detectarTipoTarjeta(datosFormulario.numeroTarjeta);
@@ -276,29 +382,37 @@ export default function PasarelaPago() {
     return () => pulseAnimation.stop();
   }, []);
 
-  const handleInputChange = (field, value) => {
-    if (field === 'numeroTarjeta') {
-      const numeroFormateado = formatearNumeroTarjeta(value);
-      if (numeroFormateado.replace(/\s/g, '').length <= 19) {
-        setDatosFormulario(prev => ({ ...prev, [field]: numeroFormateado }));
-      }
-    } else if (field === 'cvv') {
-      const cvvLimpio = value.replace(/\D/g, '');
-      const maxLength = tipoTarjeta === 'amex' ? 4 : 3;
-      if (cvvLimpio.length <= maxLength) {
-        setDatosFormulario(prev => ({ ...prev, [field]: cvvLimpio }));
-      }
-    } else if (field === 'mesExpiracion' || field === 'añoExpiracion') {
-      const numeroLimpio = value.replace(/\D/g, '');
-      if (numeroLimpio.length <= 2) {
-        setDatosFormulario(prev => ({ ...prev, [field]: numeroLimpio }));
-      }
-    } else {
-      setDatosFormulario(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (campo, valor) => {
+    let valorProcesado = valor;
+    
+    switch (campo) {
+      case 'numeroTarjeta':
+        valorProcesado = formatearNumeroTarjeta(valor);
+        setTipoTarjeta(detectarTipoTarjeta(valor));
+        break;
+      case 'mesExpiracion':
+        valorProcesado = valor.replace(/[^0-9]/g, '').slice(0, 2);
+        if (parseInt(valorProcesado) > 12) valorProcesado = '12';
+        break;
+      case 'añoExpiracion':
+        valorProcesado = valor.replace(/[^0-9]/g, '').slice(0, 4);
+        break;
+      case 'cvv':
+        valorProcesado = valor.replace(/[^0-9]/g, '').slice(0, tipoTarjeta === 'amex' ? 4 : 3);
+        break;
     }
     
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: null }));
+    setDatosFormulario(prev => ({
+      ...prev,
+      [campo]: valorProcesado
+    }));
+    
+    // Limpiar error si existe
+    if (errors[campo]) {
+      setErrors(prev => ({
+        ...prev,
+        [campo]: null
+      }));
     }
   };
 
@@ -332,20 +446,25 @@ export default function PasarelaPago() {
     const nuevosErrores = {};
 
     if (metodoPago === 'tarjeta') {
-      if (!validarTarjeta(datosFormulario.numeroTarjeta)) {
-        nuevosErrores.numeroTarjeta = 'Número de tarjeta inválido';
+      const validacionTarjeta = validarTarjeta(datosFormulario.numeroTarjeta);
+      if (!validacionTarjeta.valido) {
+        nuevosErrores.numeroTarjeta = validacionTarjeta.mensaje;
+      } else {
+        setTipoTarjeta(validacionTarjeta.tipo);
       }
       
       if (!datosFormulario.nombreTitular.trim()) {
         nuevosErrores.nombreTitular = 'Nombre del titular es obligatorio';
       }
       
-      if (!validarFechaExpiracion(datosFormulario.mesExpiracion, datosFormulario.añoExpiracion)) {
-        nuevosErrores.fechaExpiracion = 'Fecha de expiración inválida';
+      const validacionFecha = validarFechaExpiracion(datosFormulario.mesExpiracion, datosFormulario.añoExpiracion);
+      if (!validacionFecha.valido) {
+        nuevosErrores.fechaExpiracion = validacionFecha.mensaje;
       }
       
-      if (!validarCVV(datosFormulario.cvv, tipoTarjeta)) {
-        nuevosErrores.cvv = `CVV inválido (${tipoTarjeta === 'amex' ? '4' : '3'} dígitos)`;
+      const validacionCVV = validarCVV(datosFormulario.cvv, tipoTarjeta);
+      if (!validacionCVV.valido) {
+        nuevosErrores.cvv = validacionCVV.mensaje;
       }
     }
 
@@ -373,54 +492,58 @@ export default function PasarelaPago() {
     }
 
     setIsLoading(true);
-    
-    // Animación de progreso
-    Animated.timing(progressAnim, {
-      toValue: 1,
-      duration: 3000,
-      easing: Easing.inOut(Easing.quad),
-      useNativeDriver: false,
-    }).start();
-    
-    try {
-      // Simular procesamiento de pago
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Guardar información del pago en Firebase
-      if (user) {
-        const pagoData = {
-          uidUsuario: user.uid,
-          metodoPago: metodoPago,
-          planNombre: planData.nombre,
-          precioBase: planData.precio,
-          seguroCivil: planData.seguroCivil,
-          precioTotal: precioTotal,
-          email: datosFormulario.email,
-          telefono: datosFormulario.telefono,
-          estado: 'completado',
-          fechaPago: new Date().toISOString(),
-          numeroTransaccion: `TXN-${Date.now()}`,
-          ultimosCuatroDigitos: metodoPago === 'tarjeta' ? 
-            datosFormulario.numeroTarjeta.replace(/\s/g, '').slice(-4) : null,
-        };
 
-        await setDoc(doc(collection(db, 'pagos')), pagoData);
-        
-        // Actualizar estado del usuario
-        const userRef = doc(db, "usuarios", user.uid);
-        await updateDoc(userRef, {
-          planActivo: planData.nombre,
-          fechaActivacion: new Date().toISOString(),
-          estadoPago: 'activo',
-        });
+    try {
+      const numeroTarjeta = datosFormulario.numeroTarjeta.replace(/\s/g, '');
+      if (numeroTarjeta === '4242424242424242') {
+        setPagoExitoso(true);
+        setShowModal(true);
+        setMensajeError('');
+      } else if (numeroTarjeta === '4000000000000002') {
+        setPagoExitoso(false);
+        setMensajeError('La tarjeta fue rechazada (prueba Stripe).');
+        setShowModal(true);
+      } else if (numeroTarjeta === '4000000000009995') {
+        setPagoExitoso(false);
+        setMensajeError('Fondos insuficientes (prueba Stripe).');
+        setShowModal(true);
+      } else if (numeroTarjeta === '4000000000009987') {
+        setPagoExitoso(false);
+        setMensajeError('Tarjeta extraviada (prueba Stripe).');
+        setShowModal(true);
+      } else if (numeroTarjeta === '4000000000009979') {
+        setPagoExitoso(false);
+        setMensajeError('Tarjeta robada (prueba Stripe).');
+        setShowModal(true);
+      } else if (numeroTarjeta === '4000000000000069') {
+        setPagoExitoso(false);
+        setMensajeError('La tarjeta ha expirado (prueba Stripe).');
+        setShowModal(true);
+      } else if (numeroTarjeta === '4000000000000127') {
+        setPagoExitoso(false);
+        setMensajeError('El código de seguridad (CVC) es incorrecto (prueba Stripe).');
+        setShowModal(true);
+      } else if (numeroTarjeta === '4000000000000119') {
+        setPagoExitoso(false);
+        setMensajeError('Error de procesamiento de la tarjeta (prueba Stripe).');
+        setShowModal(true);
+      } else if (numeroTarjeta === '4000000000006975') {
+        setPagoExitoso(false);
+        setMensajeError('Límite de velocidad de la tarjeta excedido (prueba Stripe).');
+        setShowModal(true);
+      } else if (numeroTarjeta === '4000051230000072') {
+        setPagoExitoso(true);
+        setShowModal(true);
+        setMensajeError('');
+      } else {
+        setPagoExitoso(false);
+        setMensajeError('Tarjeta de prueba no válida. Usa una de las tarjetas de prueba de Stripe. Ejemplo: 4242 4242 4242 4242');
+        setShowModal(true);
       }
-      
-      setPagoExitoso(true);
-      setShowModal(true);
-      
     } catch (error) {
-      console.error("Error procesando pago:", error);
-      Alert.alert('Error', 'Hubo un error procesando el pago. Inténtalo de nuevo.');
+      setPagoExitoso(false);
+      setMensajeError(error.message);
+      setShowModal(true);
     } finally {
       setIsLoading(false);
     }
@@ -428,13 +551,42 @@ export default function PasarelaPago() {
 
   const getTarjetaIcon = () => {
     switch (tipoTarjeta) {
-      case 'visa': return 'cc-visa';
-      case 'mastercard': return 'cc-mastercard';
-      case 'amex': return 'cc-amex';
-      case 'discover': return 'cc-discover';
-      default: return 'credit-card';
+      case 'visa':
+        return 'credit-card';
+      case 'mastercard':
+        return 'credit-card';
+      case 'amex':
+        return 'credit-card';
+      case 'discover':
+        return 'credit-card';
+      default:
+        return 'credit-card';
     }
   };
+
+  useEffect(() => {
+    // Inicializar Stripe
+    const initStripe = async () => {
+      const stripeInstance = await loadStripe(STRIPE_PUBLISHABLE_KEY);
+      setStripe(stripeInstance);
+    };
+    initStripe();
+  }, []);
+
+  useEffect(() => {
+    if (showModal) {
+      Animated.sequence([
+        Animated.timing(dogAnim, {
+          toValue: 1,
+          duration: 600,
+          easing: Easing.out(Easing.elastic(1.2)),
+          useNativeDriver: false,
+        })
+      ]).start();
+    } else {
+      dogAnim.setValue(0);
+    }
+  }, [showModal]);
 
   return (
     <View style={styles.container}>
@@ -530,90 +682,84 @@ export default function PasarelaPago() {
             <FadeInSection animationKey="card-form" style={styles.cardForm}>
               <Text style={styles.formSectionTitle}>Datos de la Tarjeta</Text>
               
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Número de Tarjeta *</Text>
-                <View style={[styles.inputWrapper, errors.numeroTarjeta && styles.inputError]}>
-                  <FontAwesome5 
-                    name={getTarjetaIcon()} 
-                    size={20} 
-                    color={tipoTarjeta !== 'unknown' ? theme.primaryColor : theme.greyMedium} 
-                    style={styles.inputIcon} 
-                  />
-                  <TextInput
-                    style={styles.input}
-                    value={datosFormulario.numeroTarjeta}
-                    onChangeText={(value) => handleInputChange('numeroTarjeta', value)}
-                    placeholder="1234 5678 9012 3456"
-                    keyboardType="numeric"
-                    placeholderTextColor={theme.greyMedium}
-                  />
-                </View>
-                {errors.numeroTarjeta && <Text style={styles.errorText}>{errors.numeroTarjeta}</Text>}
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Nombre del Titular *</Text>
-                <View style={[styles.inputWrapper, errors.nombreTitular && styles.inputError]}>
-                  <MaterialIcons name="person" size={20} color={theme.greyMedium} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    value={datosFormulario.nombreTitular}
-                    onChangeText={(value) => handleInputChange('nombreTitular', value)}
-                    placeholder="Nombre como aparece en la tarjeta"
-                    placeholderTextColor={theme.greyMedium}
-                  />
-                </View>
-                {errors.nombreTitular && <Text style={styles.errorText}>{errors.nombreTitular}</Text>}
-              </View>
-
-              <View style={styles.cardRow}>
-                <View style={[styles.inputContainer, styles.cardRowItem]}>
-                  <Text style={styles.label}>Mes *</Text>
-                  <View style={[styles.inputWrapper, errors.fechaExpiracion && styles.inputError]}>
+              <View style={styles.cardFormContainer}>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Nombre del Titular *</Text>
+                  <View style={[styles.inputWrapper, errors.nombreTitular && styles.inputError]}>
+                    <MaterialIcons name="person" size={20} color={theme.greyMedium} style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
-                      value={datosFormulario.mesExpiracion}
-                      onChangeText={(value) => handleInputChange('mesExpiracion', value)}
-                      placeholder="MM"
-                      keyboardType="numeric"
-                      maxLength={2}
+                      value={datosFormulario.nombreTitular}
+                      onChangeText={(value) => handleInputChange('nombreTitular', value)}
+                      placeholder="Como aparece en la tarjeta"
                       placeholderTextColor={theme.greyMedium}
                     />
                   </View>
+                  {errors.nombreTitular && <Text style={styles.errorText}>{errors.nombreTitular}</Text>}
                 </View>
 
-                <View style={[styles.inputContainer, styles.cardRowItem]}>
-                  <Text style={styles.label}>Año *</Text>
-                  <View style={[styles.inputWrapper, errors.fechaExpiracion && styles.inputError]}>
-                    <TextInput
-                      style={styles.input}
-                      value={datosFormulario.añoExpiracion}
-                      onChangeText={(value) => handleInputChange('añoExpiracion', value)}
-                      placeholder="AA"
-                      keyboardType="numeric"
-                      maxLength={2}
-                      placeholderTextColor={theme.greyMedium}
-                    />
+                <View style={styles.cardRow}>
+                  <View style={styles.cardColumn}>
+                    <Text style={styles.label}>Número de Tarjeta *</Text>
+                    <View style={[styles.cardInput, errors.numeroTarjeta && styles.cardInputError]}>
+                      <TextInput
+                        style={styles.cardInput}
+                        value={datosFormulario.numeroTarjeta}
+                        onChangeText={(value) => handleInputChange('numeroTarjeta', value)}
+                        placeholder="4242 4242 4242 4242"
+                        keyboardType="number-pad"
+                        placeholderTextColor={theme.greyMedium}
+                      />
+                      <MaterialIcons name={getTarjetaIcon()} size={24} color={theme.greyMedium} style={styles.cardIcon} />
+                    </View>
+                    {errors.numeroTarjeta && <Text style={styles.errorText}>{errors.numeroTarjeta}</Text>}
+                  </View>
+                  <View style={styles.cardColumnLast}>
+                    <Text style={styles.label}>CVV *</Text>
+                    <View style={[styles.cardInput, errors.cvv && styles.cardInputError]}>
+                      <TextInput
+                        style={styles.cardInput}
+                        value={datosFormulario.cvv}
+                        onChangeText={(value) => handleInputChange('cvv', value)}
+                        placeholder="123"
+                        keyboardType="number-pad"
+                        placeholderTextColor={theme.greyMedium}
+                      />
+                    </View>
+                    {errors.cvv && <Text style={styles.errorText}>{errors.cvv}</Text>}
                   </View>
                 </View>
-
-                <View style={[styles.inputContainer, styles.cardRowItem]}>
-                  <Text style={styles.label}>CVV *</Text>
-                  <View style={[styles.inputWrapper, errors.cvv && styles.inputError]}>
-                    <TextInput
-                      style={styles.input}
-                      value={datosFormulario.cvv}
-                      onChangeText={(value) => handleInputChange('cvv', value)}
-                      placeholder={tipoTarjeta === 'amex' ? '1234' : '123'}
-                      keyboardType="numeric"
-                      secureTextEntry
-                      placeholderTextColor={theme.greyMedium}
-                    />
+                <View style={styles.cardRow}>
+                  <View style={styles.cardColumn}>
+                    <Text style={styles.label}>Fecha de Expiración *</Text>
+                    <View style={[styles.cardInput, errors.mesExpiracion && styles.cardInputError]}>
+                      <TextInput
+                        style={styles.cardInput}
+                        value={datosFormulario.mesExpiracion}
+                        onChangeText={(value) => handleInputChange('mesExpiracion', value)}
+                        placeholder="MM"
+                        keyboardType="number-pad"
+                        placeholderTextColor={theme.greyMedium}
+                      />
+                    </View>
+                    {errors.mesExpiracion && <Text style={styles.errorText}>{errors.mesExpiracion}</Text>}
+                  </View>
+                  <View style={styles.cardColumnLast}>
+                    <Text style={styles.label}>Año de Expiración *</Text>
+                    <View style={[styles.cardInput, errors.añoExpiracion && styles.cardInputError]}>
+                      <TextInput
+                        style={styles.cardInput}
+                        value={datosFormulario.añoExpiracion}
+                        onChangeText={(value) => handleInputChange('añoExpiracion', value)}
+                        placeholder="AAAA"
+                        keyboardType="number-pad"
+                        placeholderTextColor={theme.greyMedium}
+                      />
+                    </View>
+                    {errors.añoExpiracion && <Text style={styles.errorText}>{errors.añoExpiracion}</Text>}
                   </View>
                 </View>
               </View>
-              {errors.fechaExpiracion && <Text style={styles.errorText}>{errors.fechaExpiracion}</Text>}
-              {errors.cvv && <Text style={styles.errorText}>{errors.cvv}</Text>}
             </FadeInSection>
           )}
 
@@ -702,32 +848,32 @@ export default function PasarelaPago() {
                 onPress={procesarPago}
                 disabled={isLoading}
               >
-              {isLoading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color={theme.white} style={{ marginRight: 8 }} />
-                  <Text style={styles.loadingText}>Procesando...</Text>
-                  <View style={styles.progressBarContainer}>
-                    <Animated.View 
-                      style={[
-                        styles.progressBar,
-                        {
-                          width: progressAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ['0%', '100%'],
-                          })
-                        }
-                      ]} 
-                    />
+                {isLoading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color={theme.white} style={{ marginRight: 8 }} />
+                    <Text style={styles.loadingText}>Procesando...</Text>
+                    <View style={styles.progressBarContainer}>
+                      <Animated.View 
+                        style={[
+                          styles.progressBar,
+                          {
+                            width: progressAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ['0%', '100%'],
+                            })
+                          }
+                        ]} 
+                      />
+                    </View>
                   </View>
-                </View>
-              ) : (
-                <>
-                  <MaterialCommunityIcons name="lock" size={24} color={theme.white} />
-                  <Text style={styles.payButtonText}>
-                    Pagar {precioTotal.toFixed(2)}€/mes
-                  </Text>
-                </>
-                              )}
+                ) : (
+                  <View style={styles.payButtonContent}>
+                    <MaterialCommunityIcons name="lock" size={24} color={theme.white} />
+                    <Text style={styles.payButtonText}>
+                      Pagar {precioTotal.toFixed(2)}€/mes
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </Animated.View>
             </FadeInSection>
@@ -788,47 +934,35 @@ export default function PasarelaPago() {
               }
             ]}
           >
-            {/* Efecto de confeti */}
-            <View style={styles.confettiContainer}>
-              {[...Array(8)].map((_, i) => (
-                <Animated.View
-                  key={i}
-                  style={[
-                    styles.confetti,
-                    {
-                      backgroundColor: i % 2 === 0 ? theme.primaryColor : theme.accentColor,
-                      transform: [
-                        {
-                          translateY: fadeAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [-20, 100],
-                          })
-                        },
-                        {
-                          rotate: fadeAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ['0deg', '360deg'],
-                          })
-                        }
-                      ],
-                      left: `${(i * 12) + 10}%`,
-                    }
-                  ]}
-                />
-              ))}
-            </View>
-            
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <MaterialCommunityIcons name="check-circle" size={64} color={theme.success} />
+            <Animated.View style={{
+              opacity: dogAnim,
+              transform: [
+                { scale: dogAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1.1] }) },
+                { translateY: dogAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }
+              ],
+              marginTop: 8,
+              marginBottom: 8,
+            }}>
+              <MaterialCommunityIcons
+                name="dog"
+                size={80}
+                color={pagoExitoso ? theme.success : theme.error}
+              />
             </Animated.View>
             
-            <Text style={styles.modalTitle}>¡Pago Exitoso!</Text>
-            <Text style={styles.modalText}>
-              Tu suscripción ha sido activada correctamente.
-            </Text>
-            <Text style={styles.modalSubtext}>
-              Recibirás un email de confirmación en breve.
-            </Text>
+            {pagoExitoso ? (
+              <>
+                <Text style={styles.modalTitle}>¡Pago Exitoso!</Text>
+                <Text style={styles.modalText}>Tu suscripción ha sido activada correctamente.</Text>
+                <Text style={styles.modalSubtext}>Recibirás un email de confirmación en breve.</Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.modalTitle, { color: theme.error }]}>¡Pago Rechazado!</Text>
+                <Text style={styles.modalText}>{mensajeError}</Text>
+                <Text style={styles.modalSubtext}>Por favor, revisa los datos de tu tarjeta o prueba con otra.</Text>
+              </>
+            )}
             
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
               <TouchableOpacity
@@ -1027,18 +1161,50 @@ const styles = StyleSheet.create({
     color: theme.dark,
     outlineStyle: Platform.OS === 'web' ? 'none' : undefined,
   },
-  cardRow: {
-    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
-    gap: spacing.medium,
+  cardFormContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  cardRowItem: {
-    flex: Platform.OS === 'web' ? 1 : undefined,
+  cardInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  cardInputError: {
+    borderColor: '#ff3b30',
+  },
+  cardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  cardColumn: {
+    flex: 1,
+    marginRight: 8,
+  },
+  cardColumnLast: {
+    marginRight: 0,
+  },
+  cardIcon: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
   },
   errorText: {
-    color: theme.error,
-    fontSize: 13,
-    marginTop: spacing.small,
-    fontWeight: '500',
+    color: '#ff3b30',
+    fontSize: 12,
+    marginTop: -8,
+    marginBottom: 8,
   },
   termsSection: {
     backgroundColor: theme.white,
@@ -1234,7 +1400,7 @@ const styles = StyleSheet.create({
   },
   confettiContainer: {
     position: 'absolute',
-    top: 0,
+    top: -40,
     left: 0,
     right: 0,
     height: 200,
@@ -1246,5 +1412,10 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     top: 20,
+  },
+  payButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 }); 

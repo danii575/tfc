@@ -16,6 +16,7 @@ import {
   Platform,
   Easing,
   findNodeHandle, // Necesario para measureLayout en nativo, aunque deprecado
+  Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -25,8 +26,7 @@ import {
 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import Header from "../components/Header"; 
-//hola 
-
+//hola a
 // --- Paleta de Colores Refinada ---
 const theme = {
   primaryColor: "#2A9D8F", // Verde azulado principal (Teal)
@@ -115,7 +115,7 @@ const borderRadius = {
 };
 
 const maxWidth = 1200;
-const heroHeight = Platform.select({ web: 600, default: 480 });
+const heroHeight = Platform.select({ web: '100vh', default: 400 });
 
 // --- Imágenes y Constantes ---
 const images = {
@@ -496,6 +496,7 @@ const HeroSection = React.forwardRef(({ onPressPlans }, ref) => {
 });
 
 const AboutUsSection = React.forwardRef((props, ref) => {
+  const { isMobile } = props;
   return (
     <View ref={ref} style={[enhancedStyles.section, { backgroundColor: theme.offWhite }]}>
       <FadeInSection useNativeDriver={Platform.OS !== 'web'}
@@ -509,16 +510,16 @@ const AboutUsSection = React.forwardRef((props, ref) => {
             amantes de los animales trabajan 24/7 para ofrecer la mejor cobertura y
             atención integral, porque sabemos que son parte de tu familia.
           </Text>
-          <View style={enhancedStyles.statsContainer}>
-            <View style={enhancedStyles.statItem}>
+          <View style={[enhancedStyles.statsContainer, isMobile && { flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }]}> 
+            <View style={[enhancedStyles.statItem, isMobile && { alignItems: 'center', width: '100%' }]}> 
               <Text style={enhancedStyles.statNumber}>+50K</Text>
               <Text style={enhancedStyles.statLabel}>Mascotas Protegidas</Text>
             </View>
-            <View style={enhancedStyles.statItem}>
+            <View style={[enhancedStyles.statItem, isMobile && { alignItems: 'center', width: '100%' }]}> 
               <Text style={enhancedStyles.statNumber}>98%</Text>
               <Text style={enhancedStyles.statLabel}>Satisfacción Clientes</Text>
             </View>
-            <View style={enhancedStyles.statItem}>
+            <View style={[enhancedStyles.statItem, isMobile && { alignItems: 'center', width: '100%' }]}> 
               <Text style={enhancedStyles.statNumber}>24/7</Text>
               <Text style={enhancedStyles.statLabel}>Atención Veterinaria</Text>
             </View>
@@ -529,12 +530,12 @@ const AboutUsSection = React.forwardRef((props, ref) => {
   );
 });
 
-const StepCard = ({ step, index }) => {
+const StepCard = ({ step, index, isMobile }) => {
   return (
     <FadeInSection
       delay={index * 150}
       useNativeDriver={Platform.OS !== 'web'} // transform y opacity en web
-      style={enhancedStyles.stepCardWrapper}
+      style={[enhancedStyles.stepCardWrapper, isMobile && { width: '98%', maxWidth: '98%' }]}
     >
       <HoverCard style={enhancedStyles.stepCard}>
         <View style={enhancedStyles.stepIconWrapper}>
@@ -554,15 +555,16 @@ const StepCard = ({ step, index }) => {
 };
 
 const StepsSection = React.forwardRef((props, ref) => {
+  const { isMobile } = props;
   return (
     <View ref={ref} style={[enhancedStyles.section, { backgroundColor: theme.greyLight }]}>
       <View style={enhancedStyles.sectionContent}>
         <FadeInSection delay={0} useNativeDriver={Platform.OS !== 'web'} style={{marginBottom: spacing.large, width: '100%', alignItems: 'center'}}>
             <Text style={enhancedStyles.sectionTitle}>¿Cómo Funciona?</Text>
         </FadeInSection>
-        <View style={enhancedStyles.stepsCardsContainer}>
+        <View style={[enhancedStyles.stepsCardsContainer, isMobile && { flexDirection: 'column', alignItems: 'center' }]}> 
             {STEPS.map((step, index) => (
-              <StepCard key={step.id} step={step} index={index} />
+              <StepCard key={step.id} step={step} index={index} isMobile={isMobile} />
             ))}
         </View>
       </View>
@@ -570,12 +572,12 @@ const StepsSection = React.forwardRef((props, ref) => {
   );
 });
 
-const PlanCard = ({ plan, onSelect, index }) => {
+const PlanCard = ({ plan, onSelect, index, isMobile }) => {
   return (
     <FadeInSection
       delay={index * 150}
       useNativeDriver={Platform.OS !== 'web'}
-      style={enhancedStyles.planCardWrapper}
+      style={[enhancedStyles.planCardWrapper, isMobile && { width: '98%', maxWidth: '98%' }]}
     >
       <HoverCard
         style={[
@@ -629,16 +631,16 @@ const PlanCard = ({ plan, onSelect, index }) => {
 };
 
 
-const PlansSection = React.forwardRef(({ onSelectPlan }, ref) => {
+const PlansSection = React.forwardRef(({ onSelectPlan, isMobile }, ref) => {
   return (
     <View ref={ref} style={[enhancedStyles.section, { backgroundColor: theme.white }]}>
       <View style={enhancedStyles.sectionContent}>
           <FadeInSection delay={0} useNativeDriver={Platform.OS !== 'web'} style={{marginBottom: spacing.large, width: '100%', alignItems: 'center'}}>
             <Text style={enhancedStyles.sectionTitle}>Nuestros Planes</Text>
         </FadeInSection>
-        <View style={enhancedStyles.plansCardsContainer}>
+        <View style={[enhancedStyles.plansCardsContainer, isMobile && { flexDirection: 'column', alignItems: 'center' }]}> 
             {PLANS.map((plan, index) => (
-              <PlanCard key={plan.id} plan={plan} onSelect={() => onSelectPlan(plan)} index={index} />
+              <PlanCard key={plan.id} plan={plan} onSelect={() => onSelectPlan(plan)} index={index} isMobile={isMobile} />
             ))}
         </View>
       </View>
@@ -768,24 +770,25 @@ const FAQSection = React.forwardRef((props, ref) => {
 });
 
 
-const ProtectPetCTASection = () => {
+const ProtectPetCTASection = React.forwardRef((props, ref) => {
   const router = useRouter();
+  const { isMobile } = props;
 
   const handleHireNow = () => {
-    // Redirige a la página de presupuesto en lugar de registro
     router.push('/presupuesto');
-    // console.log("Contratar Ahora presionado, redirigiendo a presupuesto");
   };
 
   const handleContactAdvisor = () => {
-    console.log("Contactar con un Asesor presionado");
-    // Aquí podrías navegar a una pantalla de contacto o abrir un mailto/tel link
+    const phoneNumber = '34667995328';
+    const message = '¡Hola! Me gustaría hablar con un asesor sobre los seguros de mascotas de PetCareSeguros. Necesito ayuda para elegir el mejor plan para mi compañero peludo';
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    Linking.openURL(whatsappUrl);
   };
 
   return (
-    <View style={[enhancedStyles.section, { backgroundColor: theme.primaryColor }]}>
-      <FadeInSection useNativeDriver={Platform.OS !== 'web'} style={{width: '100%', alignItems: 'center'}}>
-        <View style={enhancedStyles.protectPetCtaContent}>
+    <View ref={ref} style={[enhancedStyles.section, { backgroundColor: theme.primaryColor }]}>
+      <View style={enhancedStyles.sectionContent}>
+        <FadeInSection useNativeDriver={Platform.OS !== 'web'} style={{width: '100%', alignItems: 'center'}}>
           <Text style={enhancedStyles.protectPetCtaTitle}>
             ¿Listo para Proteger a tu Mejor Amigo?
           </Text>
@@ -793,7 +796,7 @@ const ProtectPetCTASection = () => {
             Únete hoy a PetCareSeguros y dale a tu mascota la seguridad y el cuidado que se merece.
             Contratación rápida y sencilla.
           </Text>
-          <View style={enhancedStyles.protectPetCtaButtonsContainer}>
+          <View style={[enhancedStyles.protectPetCtaButtonsContainer, isMobile && { flexDirection: 'column', width: '100%' }]}>
             <HoverButton
               style={[enhancedStyles.protectPetCtaButton, enhancedStyles.protectPetCtaButtonPrimary]}
               hoverStyle={enhancedStyles.buttonHoverWhiteDarker}
@@ -811,11 +814,11 @@ const ProtectPetCTASection = () => {
               <MaterialIcons name="support-agent" size={20} color={theme.white} style={{ marginLeft: 8 }}/>
             </HoverButton>
           </View>
-        </View>
-      </FadeInSection>
+        </FadeInSection>
+      </View>
     </View>
   );
-};
+});
 
 const FooterLink = ({ onPress, children }) => {
     const [isHovered, setIsHovered] = useState(false);
@@ -910,7 +913,7 @@ const enhancedStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: spacing.large,
-    paddingVertical: spacing.ultraLarge + spacing.medium,
+    paddingVertical: spacing.large,
   },
   heroContent: {
     maxWidth: 750,
@@ -996,16 +999,16 @@ const enhancedStyles = StyleSheet.create({
   stepsCardsContainer: {
       flexDirection: Platform.OS === 'web' ? 'row' : 'column',
       justifyContent: 'center',
-      alignItems: Platform.OS === 'web' ? 'stretch' : 'center', // stretch para igualar alturas en web si las cards son flex:1
-      flexWrap: 'wrap', // Permitir que las tarjetas pasen a la siguiente línea si no caben
+      alignItems: Platform.OS === 'web' ? 'stretch' : 'center',
+      flexWrap: 'wrap',
       width: '100%',
-      gap: spacing.large, // Espacio entre tarjetas (CSS Grid Gap)
+      gap: spacing.large,
   },
   stepCardWrapper: {
-      width: Platform.OS === 'web' ? '30%' : '90%', // En web, 3 tarjetas por fila aprox.
-      maxWidth: Platform.OS === 'web' ? 340 : 400, // Ancho máximo por tarjeta
-      alignItems: 'stretch', // Para que la HoverCard (hija) se estire
-      marginBottom: Platform.OS === 'web' ? 0 : spacing.large, // Espacio inferior en móvil
+      width: Platform.OS === 'web' ? '30%' : '98%', // Más ancho en móvil
+      maxWidth: Platform.OS === 'web' ? 340 : '98%', // Ocupa casi todo el ancho en móvil
+      alignItems: 'stretch',
+      marginBottom: Platform.OS === 'web' ? 0 : spacing.large,
   },
   stepCard: {
     padding: spacing.large,
@@ -1042,8 +1045,8 @@ const enhancedStyles = StyleSheet.create({
       gap: spacing.large,
   },
   planCardWrapper: {
-      width: Platform.OS === 'web' ? '30%' : '90%',
-      maxWidth: Platform.OS === 'web' ? 380 : 420,
+      width: Platform.OS === 'web' ? '30%' : '98%', // Más ancho en móvil
+      maxWidth: Platform.OS === 'web' ? 380 : '98%', // Ocupa casi todo el ancho en móvil
       alignItems: 'stretch',
       marginBottom: Platform.OS === 'web' ? 0 : spacing.large,
   },
@@ -1271,39 +1274,40 @@ const enhancedStyles = StyleSheet.create({
     maxWidth: maxWidth,
     paddingHorizontal: spacing.large,
     alignItems: "center",
+    justifyContent: "center",
   },
   protectPetCtaTitle: {
     ...typography.heading2,
-    color: theme.white, // Texto blanco sobre fondo primario
+    color: theme.white,
     marginBottom: spacing.medium,
     fontSize: Platform.OS === 'web' ? 32 : 28,
+    textAlign: "center",
   },
   protectPetCtaSubtitle: {
     ...typography.body,
     color: theme.white,
-    maxWidth: 650, // Limitar ancho del subtítulo
+    maxWidth: 650,
     marginBottom: spacing.large + 10,
     textAlign: "center",
     fontSize: 18,
     lineHeight: 28,
   },
   protectPetCtaButtonsContainer: {
-    flexDirection: Platform.OS === "web" ? "row" : "column", // Botones en fila en web, columna en móvil
-    justifyContent: "center",
-    alignItems: "center",
-    width: "100%",
-    maxWidth: 600, // Ancho máximo para el contenedor de botones
-    gap: spacing.medium, // Espacio entre botones
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.medium,
+    width: '100%',
+    marginTop: spacing.large,
   },
   protectPetCtaButton: {
-    paddingVertical: spacing.medium + 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.medium,
     paddingHorizontal: spacing.large,
-    borderRadius: 50, // Botones redondeados
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: 'row', // Alinear ícono y texto
-    minWidth: Platform.OS === "web" ? 240 : "85%", // Ancho mínimo
-    marginVertical: Platform.OS !== "web" ? spacing.small : 0, // Margen vertical en móvil
+    borderRadius: 50,
+    width: Platform.OS === 'web' ? 'auto' : '90%',
     ...theme.shadow,
   },
   protectPetCtaButtonPrimary: {
@@ -1325,7 +1329,7 @@ const enhancedStyles = StyleSheet.create({
 
   // --- Sección Estadísticas (dentro de "Quiénes Somos") ---
   statsContainer: {
-    flexDirection: "row", // Items en fila
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
     justifyContent: "space-around", // Distribuir espacio
     marginTop: spacing.large + 10,
     width: "100%",
@@ -1336,7 +1340,8 @@ const enhancedStyles = StyleSheet.create({
   statItem: {
     alignItems: "center", // Centrar número y etiqueta
     marginBottom: spacing.medium,
-    minWidth: 150, // Ancho mínimo por item
+    minWidth: Platform.OS === "web" ? 150 : '80%',
+    width: Platform.OS === "web" ? undefined : '100%',
     padding: spacing.small,
   },
   statNumber: {
@@ -1431,6 +1436,8 @@ const enhancedStyles = StyleSheet.create({
 export default function IndexPage() {
   const router = useRouter();
   const scrollViewRef = useRef(null);
+  const { width } = useWindowDimensions();
+  const isMobile = width < 700;
 
   const heroSectionRef = useRef(null);
   const aboutUsSectionRef = useRef(null); // ID: about
@@ -1508,13 +1515,13 @@ export default function IndexPage() {
         scrollEventThrottle={16} // Para animaciones basadas en scroll si las hubiera
       >
         <HeroSection ref={heroSectionRef} onPressPlans={handleScrollToPlans} />
-        <AboutUsSection ref={aboutUsSectionRef} />
-        <StepsSection ref={stepsSectionRef} />
-        <PlansSection ref={plansSectionRef} onSelectPlan={handleSelectPlan} />
+        <AboutUsSection ref={aboutUsSectionRef} isMobile={isMobile} />
+        <StepsSection ref={stepsSectionRef} isMobile={isMobile} />
+        <PlansSection ref={plansSectionRef} onSelectPlan={handleSelectPlan} isMobile={isMobile} />
         <TestimonialsSection ref={testimonialsSectionRef} />
         <CommunitySection ref={communitySectionRef} />
         <FAQSection ref={faqSectionRef} />
-        <ProtectPetCTASection />
+        <ProtectPetCTASection ref={contactSectionRef} isMobile={isMobile} />
         <Footer
           ref={contactSectionRef} // El ref para la sección de contacto es el Footer
           onNavigateToPlans={handleScrollToPlans}

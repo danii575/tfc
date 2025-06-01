@@ -3,6 +3,8 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { Platform } from 'react-native';
+import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 // getAuth se importará en los archivos que lo necesiten directamente.
 
 const firebaseConfig = {
@@ -39,17 +41,10 @@ if (app) {
   // Esto se hace una vez y getAuth(app) en los componentes la respetará.
   if (Platform.OS !== 'web') {
     console.log("Configurando persistencia de Auth para nativo...");
-    import('@react-native-async-storage/async-storage')
-      .then(({ default: AsyncStorage }) => {
-        const { initializeAuth, getReactNativePersistence } = require('firebase/auth/react-native');
-        // Se inicializa auth aquí para configurar la persistencia, pero no se exporta directamente.
-        // Los componentes usarán getAuth(app).
-        initializeAuth(app, {
-          persistence: getReactNativePersistence(AsyncStorage),
-        });
-        console.log("Firebase Auth persistencia nativa configurada.");
-      })
-      .catch(error => console.error("Error CRUCIAL: Fallo al inicializar persistencia nativa de Auth:", error));
+    initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage)
+    });
+    console.log("Firebase Auth persistencia nativa configurada.");
   } else {
       console.log("Plataforma web detectada, usando persistencia por defecto para Auth (manejada por getAuth).");
   }
@@ -58,4 +53,5 @@ if (app) {
   // db y storage serán undefined, lo cual debe manejarse en la app.
 }
 
+export const auth = getAuth(app);
 export { app, db, storage }; // Exportar la app inicializada y los servicios

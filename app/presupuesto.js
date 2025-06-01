@@ -15,6 +15,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
 import { getAuth } from 'firebase/auth'; 
@@ -25,6 +26,32 @@ import { collection, addDoc } from 'firebase/firestore';
 import Header from '../components/Header'; 
 import { useAuth } from './_layout'; // Asegúrate que esta ruta sea correcta para tu AuthContext
 import dogBreeds from './dogBreeds.json';
+
+// Añadir razas de gatos
+const catBreeds = [
+  "No conozco la raza",
+  "Europeo Común",
+  "Siamés",
+  "Persa",
+  "Maine Coon",
+  "Ragdoll",
+  "Bengalí",
+  "Sphynx",
+  "Abisinio",
+  "Británico de Pelo Corto",
+  "Azul Ruso",
+  "Birmano",
+  "Somalí",
+  "Angora Turco",
+  "Nebelung",
+  "Munchkin",
+  "Siberiano",
+  "Bombay",
+  "Burmés",
+  "Tonkinés",
+  "Oriental",
+  "Mezcla"
+];
 
 // --- Definiciones de Tema y Estilo ---
 const theme = {
@@ -545,21 +572,32 @@ const tipoExoticoOptions = [ { label: 'Conejo', value: 'conejo' }, { label: 'Hur
 // --- Fin Estados y Opciones ---
 
 // Nuevos componentes para la selección inicial
-const AnimalTypeCard = ({ type, icon, title, onSelect, isSelected }) => (
-  <TouchableOpacity 
-    onPress={() => onSelect(type)}
-    style={[
-      styles.animalTypeCard,
-      isSelected && styles.animalTypeCardSelected
-    ]}
-  >
-    <MaterialIcons name={icon} size={48} color={isSelected ? theme.white : theme.primaryColor} />
-    <Text style={[
-      styles.animalTypeTitle,
-      isSelected && styles.animalTypeTitleSelected
-    ]}>{title}</Text>
-  </TouchableOpacity>
-);
+const AnimalTypeCard = ({ type, title, onSelect, isSelected }) => {
+  let iconComponent = null;
+  const iconColor = isSelected ? '#FFFFFF' : '#2A9D8F'; // Blanco si seleccionado, azul si no
+  if (type === 'perro') {
+    iconComponent = <MaterialIcons name="pets" size={48} color={iconColor} />;
+  } else if (type === 'gato') {
+    iconComponent = <MaterialCommunityIcons name="cat" size={48} color={iconColor} />;
+  } else if (type === 'otro') {
+    iconComponent = <MaterialIcons name="emoji-nature" size={48} color={iconColor} />;
+  }
+  return (
+    <TouchableOpacity 
+      onPress={() => onSelect(type)}
+      style={[
+        styles.animalTypeCard,
+        isSelected && styles.animalTypeCardSelected
+      ]}
+    >
+      {iconComponent}
+      <Text style={[
+        styles.animalTypeTitle,
+        isSelected && styles.animalTypeTitleSelected
+      ]}>{title}</Text>
+    </TouchableOpacity>
+  );
+};
 
 export default function PresupuestoPage() {
   const router = useRouter();
@@ -688,7 +726,7 @@ export default function PresupuestoPage() {
       if (!validateAnimalFields(currentAnimalIndex, true)) {
         return;
       }
-      setCurrentStep(2);
+      setCurrentStep('addOrContinue');
     } else if (currentStep === 2) {
       setCurrentStep(3);
     } else if (currentStep === 3) {
@@ -705,7 +743,14 @@ export default function PresupuestoPage() {
     else if (currentStep === 2) setCurrentStep(1);
     else if (currentStep === 3) setCurrentStep(2);
     else if (currentStep === 4) setCurrentStep(3);
-    else if (currentStep === 0 && router.canGoBack()) router.back();
+    else if (currentStep === 0) {
+      if (currentAnimalIndex > 0) {
+        setCurrentAnimalIndex(currentAnimalIndex - 1);
+        setCurrentStep(1);
+      } else {
+        router.push('/');
+      }
+    }
     scrollToTop();
   };
 
@@ -836,28 +881,25 @@ export default function PresupuestoPage() {
         <View style={styles.animalTypeContainer}>
           <AnimalTypeCard
             type="perro"
-            icon="pets"
             title="Perro"
             onSelect={(type) => handleAnimalChange('tipo', type)}
             isSelected={currentAnimalData.tipo === 'perro'}
           />
           <AnimalTypeCard
             type="gato"
-            icon="pets"
             title="Gato"
             onSelect={(type) => handleAnimalChange('tipo', type)}
             isSelected={currentAnimalData.tipo === 'gato'}
           />
           <AnimalTypeCard
             type="otro"
-            icon="pets"
             title="Otro"
             onSelect={(type) => handleAnimalChange('tipo', type)}
             isSelected={currentAnimalData.tipo === 'otro'}
           />
         </View>
       </FormCard>
-          </FadeInSection>
+    </FadeInSection>
   );
 
   const renderBasicAnimalForm = () => (
@@ -893,14 +935,34 @@ export default function PresupuestoPage() {
             placeholder="Seleccionar raza..."
           />
         )}
-        {currentAnimalData.tipo === 'otro' && (
-          <FormPicker
-            label="Tipo de Animal Exótico"
-            selectedValue={currentAnimalData.tipoExotico}
-            onValueChange={value => handleAnimalChange('tipoExotico', value)}
-            options={tipoExoticoOptions}
-            errorText={currentAnimalErrors.tipoExotico}
+        {currentAnimalData.tipo === 'gato' && (
+          <RazaPickerConBuscador
+            label="Raza"
+            selectedValue={currentAnimalData.raza}
+            onValueChange={value => handleAnimalChange('raza', value)}
+            options={catBreeds}
+            errorText={currentAnimalErrors.raza}
+            placeholder="Seleccionar raza..."
           />
+        )}
+        {currentAnimalData.tipo === 'otro' && (
+          <>
+            <FormPicker
+              label="Tipo de Animal Exótico"
+              selectedValue={currentAnimalData.tipoExotico}
+              onValueChange={value => handleAnimalChange('tipoExotico', value)}
+              options={tipoExoticoOptions}
+              errorText={currentAnimalErrors.tipoExotico}
+            />
+            <FormInput
+              label="Raza o Especie"
+              value={currentAnimalData.raza}
+              onChangeText={text => handleAnimalChange('raza', text)}
+              errorText={currentAnimalErrors.raza}
+              placeholder="Especifique la raza o especie..."
+              isOptional={true}
+            />
+          </>
         )}
       </FormCard>
     </FadeInSection>
@@ -1083,21 +1145,50 @@ export default function PresupuestoPage() {
   
   const showFooterBackButton = (currentStep === 0 && currentAnimalIndex > 0) || currentStep === 0.5 || currentStep === 1 || currentStep === 2;
 
+  // Nuevo paso especial para elegir entre añadir otra mascota o continuar
+  const renderAddOrContinue = () => (
+    <FadeInSection animationKey="add-or-continue">
+      <FormCard title={`¿Quieres añadir otra mascota?`}>
+        <Text style={{ textAlign: 'center', marginBottom: 24, fontSize: 16 }}>
+          Puedes añadir tantas mascotas como quieras antes de continuar.
+        </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16 }}>
+          <FormButton
+            title="Añadir otra mascota"
+            onPress={addAnotherAnimalAction}
+            iconName="add"
+            style={{ minWidth: 180, marginRight: 8 }}
+          />
+          <FormButton
+            title="Continuar"
+            onPress={() => {
+              if (!validateAnimalFields(currentAnimalIndex, true)) return;
+              setCurrentStep(2);
+            }}
+            iconName="arrow-forward"
+            style={{ minWidth: 180, marginLeft: 8 }}
+          />
+        </View>
+      </FormCard>
+    </FadeInSection>
+  );
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
       <View style={styles.outerContainer}>
         <Header title="Solicitar Presupuesto" onNavigateToHome={router.canGoBack() ? () => router.back() : () => router.push('/')} />
-        <ProgressBar current={currentStep + 1} total={5} />
+        <ProgressBar current={typeof currentStep === 'number' ? currentStep + 1 : 2} total={5} />
         <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContainer}>
           <View style={styles.innerContainer}>
             {currentStep === 0 && renderAnimalTypeSelection()}
             {currentStep === 1 && renderBasicAnimalForm()}
+            {currentStep === 'addOrContinue' && renderAddOrContinue()}
             {currentStep === 2 && renderAdditionalInfoForm()}
             {currentStep === 3 && renderOwnerForm()}
             {currentStep === 4 && renderReview()}
-            
-            {/* Navegación solo para pasos normales (0-3) */}
-            {currentStep !== 4 && (
+
+            {/* Navegación solo para pasos normales (0-3) y no en addOrContinue */}
+            {currentStep !== 4 && currentStep !== 'addOrContinue' && (
               <View style={styles.navigationButtons}>
                 <FormButton 
                   title="Atrás" 
@@ -1389,12 +1480,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: theme.primaryColor,
+    borderColor: '#2A9D8F',
     ...theme.shadow,
+    transition: 'background-color 0.2s',
   },
   animalTypeCardSelected: {
-    backgroundColor: theme.primaryColor,
-    borderColor: theme.primaryColor,
+    backgroundColor: '#2A9D8F',
+    borderColor: '#2A9D8F',
   },
   animalTypeTitle: {
     ...typography.heading3,

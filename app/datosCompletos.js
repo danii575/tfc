@@ -13,6 +13,7 @@ import {
   Pressable,
   Animated,
   Easing,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -22,7 +23,7 @@ import { FadeInSection } from '../components/FadeInSection';
 import { useAuth } from './_layout';
 import provincias from '../data/provincias.json';
 import comunidades from '../data/comunidades.json';
-import { doc, updateDoc, collection, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, setDoc, addDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { updateProfile } from 'firebase/auth';
 //hola 
@@ -64,8 +65,9 @@ const typography = {
 
 const spacing = { small: 8, medium: 14, large: 20, extraLarge: 28, ultraLarge: 48 };
 
-// Tipos de vía para el desplegable
+// Tipos de vía para el desplegablea
 const tiposVia = [
+  { value: '', label: 'Selecciona tipo de vía' },
   { value: 'calle', label: 'Calle' },
   { value: 'avenida', label: 'Avenida' },
   { value: 'plaza', label: 'Plaza' },
@@ -81,6 +83,9 @@ const tiposVia = [
   { value: 'poligono', label: 'Polígono' },
   { value: 'otros', label: 'Otros' }
 ];
+
+const provinciasOptions = [{ value: '', label: 'Selecciona provincia' }, ...provincias.map(p => ({ value: p.value || p.label, label: p.label || p }))];
+const comunidadesOptions = [{ value: '', label: 'Selecciona comunidad' }, ...comunidades.map(c => ({ value: c.value || c.label, label: c.label || c }))];
 
 // Componente específico para el campo del microchip
 const ChipInput = ({ index, value, onChangeText, error }) => {
@@ -242,7 +247,7 @@ const PLANS_DATA = [
 export default function DatosCompletosPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const [formData, setFormData] = useState({
     tipoDocumento: 'DNI',
     numeroDocumento: '',
@@ -425,7 +430,7 @@ export default function DatosCompletosPage() {
 
   // Animaciones de entrada
   useEffect(() => {
-    Animated.parallel([
+    const animations = Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 1000,
@@ -444,7 +449,9 @@ export default function DatosCompletosPage() {
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
-    ]).start();
+    ]);
+
+    animations.start();
 
     // Animación de pulso para el botón principal
     const pulseAnimation = Animated.loop(
@@ -463,10 +470,14 @@ export default function DatosCompletosPage() {
         }),
       ])
     );
+
     pulseAnimation.start();
 
-    return () => pulseAnimation.stop();
-  }, []);
+    return () => {
+      animations.stop();
+      pulseAnimation.stop();
+    };
+  }, []); // Array de dependencias vacío para que solo se ejecute una vez
 
   const validateForm = () => {
     return validarFormulario();
@@ -501,14 +512,22 @@ export default function DatosCompletosPage() {
   const handleSubmit = async () => {
     console.log("[DatosCompletos] Iniciando handleSubmit");
     console.log("[DatosCompletos] FormData actual:", formData);
-    console.log("[DatosCompletos] Errores actuales:", errors);
+    console.log("[DatosCompletos] Estado de autenticación:", currentUser ? "Autenticado" : "No autenticado");
     
-    const isValid = validateForm();
+    // Verificar autenticación primero
+    if (!currentUser) {
+      console.log("[DatosCompletos] Usuario no autenticado, redirigiendo a login");
+      Alert.alert('Error', 'Por favor, inicia sesión para continuar.');
+      router.replace('/login');
+      return;
+    }
+
+    const isValid = validarFormulario();
     console.log("[DatosCompletos] Formulario válido:", isValid);
     
     if (!isValid) {
       console.log("[DatosCompletos] Formulario inválido, mostrando errores:", errors);
-      Alert.alert('Error', 'Por favor, completa todos los campos correctamente.');
+      Alert.alert('Error', 'Por favor, completa todos los campos obligatorios y corrige los errores.');
       return;
     }
 
@@ -516,88 +535,84 @@ export default function DatosCompletosPage() {
       setIsLoading(true);
       console.log("[DatosCompletos] Iniciando guardado en Firebase");
       
-      // Guardar datos en Firebase
-      if (user) {
-        const userRef = doc(db, "usuarios", user.uid);
-        await updateDoc(userRef, {
-          tipoDocumento: formData.tipoDocumento,
-          numeroDocumento: formData.numeroDocumento,
-          fechaNacimiento: formData.fechaNacimiento,
-          tipoVia: formData.tipoVia,
-          nombreVia: formData.nombreVia,
-          numero: formData.numero,
-          piso: formData.piso,
-          puerta: formData.puerta,
-          escalera: formData.escalera,
-          codigoPostal: formData.codigoPostal,
-          provincia: formData.provincia,
-          comunidadAutonoma: formData.comunidadAutonoma,
-          mascotas: formData.mascotas,
-          ultimaActualizacion: new Date().toISOString()
-        });
+      const userRef = doc(db, "usuarios", currentUser.uid);
+      await updateDoc(userRef, {
+        tipoDocumento: formData.tipoDocumento,
+        numeroDocumento: formData.numeroDocumento,
+        fechaNacimiento: formData.fechaNacimiento,
+        tipoVia: formData.tipoVia,
+        nombreVia: formData.nombreVia,
+        numero: formData.numero,
+        piso: formData.piso,
+        puerta: formData.puerta,
+        escalera: formData.escalera,
+        codigoPostal: formData.codigoPostal,
+        provincia: formData.provincia,
+        comunidadAutonoma: formData.comunidadAutonoma,
+        mascotas: formData.mascotas,
+        ultimaActualizacion: new Date().toISOString()
+      });
 
-        // No actualizamos el displayName ya que se configuró en el registro
-
-        // Si viene del registro con datos de presupuesto, guardar también el presupuesto
-        if (params.fromRegistro === 'true' && params.animals) {
-          try {
-            const animals = JSON.parse(params.animals);
-            const presupuestoData = {
-              uidUsuario: user.uid,
-              animals: animals,
-              ownerData: {
-                nombre: user.displayName || '',
-                email: user.email,
-                telefono: formData.telefono || ''
-              },
-              howHeard: params.howHeard || '',
-              selectedPlanId: params.selectedPlanId || '',
-              planNombre: params.planNombre || '',
-              precioEstimado: params.precioEstimado || '',
-              numeroMascotas: params.numeroMascotas || '0',
-              status: "completado",
-              createdAt: new Date().toISOString(),
-              completedAt: new Date().toISOString()
-            };
-
-            await setDoc(doc(collection(db, 'presupuestos')), presupuestoData);
-            console.log("[DatosCompletos] Presupuesto guardado exitosamente");
-          } catch (error) {
-            console.error("[DatosCompletos] Error al guardar presupuesto:", error);
-          }
-        }
-
-        // Redirigir a la pasarela de pago con los datos del plan
-        console.log("[DatosCompletos] Preparando navegación a pasarela de pago");
-        console.log("[DatosCompletos] Plan seleccionado:", formData.planSeleccionado);
-        console.log("[DatosCompletos] Seguro civil:", seguroCivil);
-        console.log("[DatosCompletos] Precio final:", finalPrice);
-        
-        const pagoParams = {
-          planNombre: formData.planSeleccionado?.nombre || 'Plan Básico',
-          precioBase: formData.planSeleccionado?.precio?.toFixed(2) || '29.00',
-          seguroCivil: seguroCivil.toString(),
-          precioTotal: finalPrice.toFixed(2),
-          fromDatosCompletos: 'true'
-        };
-        
-        console.log("[DatosCompletos] Parámetros de pago:", pagoParams);
-        
+      if (params.fromRegistro === 'true' && params.animals) {
         try {
-          console.log("[DatosCompletos] Ejecutando router.push...");
-          router.push({
-            pathname: '/pasarelaPago',
-            params: pagoParams
-          });
-          console.log("[DatosCompletos] router.push ejecutado exitosamente");
-        } catch (routerError) {
-          console.error("[DatosCompletos] Error en router.push:", routerError);
-          Alert.alert('Error', 'Error al navegar a la pasarela de pago');
+          const animals = JSON.parse(params.animals);
+          const presupuestoData = {
+            uidUsuario: currentUser.uid,
+            animals: animals,
+            ownerData: {
+              nombre: currentUser.displayName || '',
+              email: currentUser.email
+            },
+            howHeard: params.howHeard || '',
+            selectedPlanId: params.selectedPlanId || '',
+            planNombre: params.planNombre || '',
+            precioEstimado: params.precioEstimado || '',
+            numeroMascotas: params.numeroMascotas || '0',
+            status: "completado",
+            createdAt: new Date().toISOString(),
+            completedAt: new Date().toISOString()
+          };
+
+          await addDoc(collection(db, 'presupuestos'), presupuestoData);
+          console.log("[DatosCompletos] Presupuesto guardado exitosamente");
+        } catch (error) {
+          console.error("[DatosCompletos] Error al guardar presupuesto:", error);
         }
       }
+
+      const planPrice = formData.planSeleccionado?.precio ? parseFloat(formData.planSeleccionado.precio) : 0;
+      const finalPrice = planPrice + (seguroCivil ? precioCivil : 0);
+
+      console.log("[DatosCompletos] Preparando navegación a pasarela de pago");
+      console.log("[DatosCompletos] Plan seleccionado:", formData.planSeleccionado);
+      console.log("[DatosCompletos] Seguro civil:", seguroCivil);
+      console.log("[DatosCompletos] Precio final:", finalPrice);
+      
+      const pagoParams = {
+        planNombre: formData.planSeleccionado?.nombre || 'Plan Básico',
+        precioBase: formData.planSeleccionado?.precio?.toString() || '29.00',
+        seguroCivil: seguroCivil.toString(),
+        precioTotal: finalPrice.toFixed(2).toString(),
+        fromDatosCompletos: 'true',
+        userId: currentUser.uid
+      };
+      
+      console.log("[DatosCompletos] Parámetros de pago:", pagoParams);
+      
+      try {
+        console.log("[DatosCompletos] Ejecutando router.replace...");
+        await router.replace({
+          pathname: '/pasarelaPago',
+          params: pagoParams
+        });
+        console.log("[DatosCompletos] router.replace ejecutado exitosamente");
+      } catch (routerError) {
+        console.error("[DatosCompletos] Error en router.replace:", routerError);
+        Alert.alert('Error', 'Error al navegar a la pasarela de pago.');
+      }
     } catch (error) {
-      console.error("Error al guardar datos:", error);
-      Alert.alert('Error', 'Hubo un error al guardar los datos');
+      console.error("[DatosCompletos] Error general al guardar datos o navegar:", error);
+      Alert.alert('Error', 'Hubo un error al procesar tus datos. Inténtalo de nuevo.');
     } finally {
       setIsLoading(false);
     }
@@ -632,48 +647,51 @@ export default function DatosCompletosPage() {
   const validarFormulario = () => {
     const nuevosErrores = {};
 
-    if (formData.tipoDocumento === 'DNI' && !validarDNI(formData.numeroDocumento)) {
-      nuevosErrores.numeroDocumento = 'DNI inválido';
+    if (!formData.tipoDocumento) {
+      nuevosErrores.tipoDocumento = 'Selecciona el tipo de documento.';
+    } else if (formData.tipoDocumento === 'DNI' && !validarDNI(formData.numeroDocumento)) {
+      nuevosErrores.numeroDocumento = 'DNI inválido.';
+    } else if (formData.tipoDocumento === 'NIE' && !validarNIE(formData.numeroDocumento)) {
+      nuevosErrores.numeroDocumento = 'NIE inválido.';
     }
-    if (formData.tipoDocumento === 'NIE' && !validarNIE(formData.numeroDocumento)) {
-      nuevosErrores.numeroDocumento = 'NIE inválido';
-    }
+
     if (!formData.numeroDocumento) {
-        nuevosErrores.numeroDocumento = 'El DNI/NIE es obligatorio.';
+      nuevosErrores.numeroDocumento = 'El número de documento es obligatorio.';
     }
 
     if (!formData.fechaNacimiento) {
-        nuevosErrores.fechaNacimiento = 'La fecha de nacimiento es obligatoria.';
+      nuevosErrores.fechaNacimiento = 'La fecha de nacimiento es obligatoria.';
     } else {
-        const edad = calcularEdad(formData.fechaNacimiento);
-        if (edad < 18) {
-            nuevosErrores.fechaNacimiento = 'Debes ser mayor de 18 años.';
-        }
+      const edad = calcularEdad(formData.fechaNacimiento);
+      if (edad < 18) {
+        nuevosErrores.fechaNacimiento = 'Debes ser mayor de 18 años.';
+      }
     }
 
-    if (!validarCodigoPostal(formData.codigoPostal)) {
+    if (!formData.codigoPostal) {
+      nuevosErrores.codigoPostal = 'El código postal es obligatorio.';
+    } else if (!validarCodigoPostal(formData.codigoPostal)) {
       nuevosErrores.codigoPostal = 'Código postal inválido (5 dígitos).';
-    }
-     if (!formData.codigoPostal) {
-        nuevosErrores.codigoPostal = 'El código postal es obligatorio.';
     }
 
     // Validar campos de dirección
     const validacionDireccion = validarDireccionCompleta(
-      formData.tipoVia, 
-      formData.nombreVia, 
-      formData.numero, 
-      formData.piso, 
+      formData.tipoVia,
+      formData.nombreVia,
+      formData.numero,
+      formData.piso,
       formData.puerta
     );
-    
+
     if (!validacionDireccion.tipoVia) {
       nuevosErrores.tipoVia = 'Selecciona el tipo de vía.';
     }
     if (!validacionDireccion.nombreVia) {
       nuevosErrores.nombreVia = 'El nombre de la vía debe tener al menos 3 caracteres.';
     }
-    if (!validacionDireccion.numero) {
+    if (!formData.numero) {
+      nuevosErrores.numero = 'El número es obligatorio.';
+    } else if (!validacionDireccion.numero) {
       nuevosErrores.numero = 'Número inválido (ej: 123, 45A).';
     }
     if (!validacionDireccion.piso) {
@@ -682,22 +700,29 @@ export default function DatosCompletosPage() {
     if (!validacionDireccion.puerta) {
       nuevosErrores.puerta = 'La puerta es obligatoria.';
     }
-    
+
     if (!formData.provincia) {
-        nuevosErrores.provincia = 'La provincia es obligatoria.';
+      nuevosErrores.provincia = 'La provincia es obligatoria.';
     }
     if (!formData.comunidadAutonoma) {
-        nuevosErrores.comunidadAutonoma = 'La comunidad autónoma es obligatoria.';
+      nuevosErrores.comunidadAutonoma = 'La comunidad autónoma es obligatoria.';
     }
 
-    formData.mascotas.forEach((mascota, index) => {
-      if (!validarChip((mascota.chip || '').replace(/\D/g, ''))) {
-        nuevosErrores[`mascota_${index}`] = 'Chip inválido (15 dígitos).';
+    // Validar chips de mascotas
+    if (!formData.mascotas || formData.mascotas.length === 0) {
+      if (params.animals && JSON.parse(params.animals).length > 0) {
+        nuevosErrores.mascotas = 'Debes completar los datos de las mascotas.';
       }
-      if (!mascota.chip) {
-         nuevosErrores[`mascota_${index}`] = 'El chip de la mascota es obligatorio.';
-      }
-    });
+    } else {
+      formData.mascotas.forEach((mascota, index) => {
+        const chipValue = (mascota.chip || '').replace(/\D/g, '');
+        if (!chipValue) {
+          nuevosErrores[`mascota_${index}`] = 'El chip de la mascota es obligatorio.';
+        } else if (!validarChip(chipValue)) {
+          nuevosErrores[`mascota_${index}`] = 'Chip inválido (debe tener 15 dígitos numéricos).';
+        }
+      });
+    }
 
     setErrors(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
@@ -919,7 +944,6 @@ export default function DatosCompletosPage() {
                             style={styles.selectCustom}
                             aria-label="Selecciona tipo de vía"
                           >
-                            <option value="">Selecciona tipo de vía</option>
                             {tiposVia.map(tipo => (
                               <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
                             ))}
@@ -927,7 +951,10 @@ export default function DatosCompletosPage() {
                         </View>
                       ) : (
                         <View style={styles.inputContainer}>
-                          <Text style={styles.placeholderText}>(Implementar Picker Nativo para Tipo de Vía)</Text>
+                          <View style={[styles.inputWrapper, errors.tipoVia && styles.inputError]}>
+                            <MaterialIcons name="signpost" size={20} color={theme.greyMedium} style={styles.inputIcon} />
+                            <Text style={styles.placeholderTextNative}>Selecciona tipo de vía (Pendiente Picker Nativo)</Text>
+                          </View>
                         </View>
                       )}
                       {errors.tipoVia && <Text style={styles.errorText}>{errors.tipoVia}</Text>}
@@ -1041,9 +1068,10 @@ export default function DatosCompletosPage() {
                             onChange={e => handleInputChange('provincia', e.target.value)}
                             style={styles.selectCustom}
                             aria-label="Selecciona provincia"
-                        >
-                            <option value="">Selecciona provincia</option>
-                            {provincias.map(p => <option key={p.value || p} value={p.value || p}>{p.label || p}</option>)}
+                          >
+                            {provinciasOptions.map(p => (
+                              <option key={p.value} value={p.value}>{p.label}</option>
+                            ))}
                         </select>
                         </View>
                         {errors.provincia && <Text style={styles.errorText}>{errors.provincia}</Text>}
@@ -1058,9 +1086,10 @@ export default function DatosCompletosPage() {
                             onChange={e => handleInputChange('comunidadAutonoma', e.target.value)}
                             style={styles.selectCustom}
                             aria-label="Selecciona comunidad autónoma"
-                        >
-                            <option value="">Selecciona comunidad</option>
-                            {comunidades.map(c => <option key={c.value || c} value={c.value || c}>{c.label || c}</option>)}
+                          >
+                            {comunidadesOptions.map(c => (
+                              <option key={c.value} value={c.value}>{c.label}</option>
+                            ))}
                         </select>
                         </View>
                         {errors.comunidadAutonoma && <Text style={styles.errorText}>{errors.comunidadAutonoma}</Text>}
@@ -1094,7 +1123,6 @@ export default function DatosCompletosPage() {
                     <Text style={styles.petCountText}>{formData.mascotas.length}</Text>
                   </View>
                 </View>
-                {console.log("[RENDER] Renderizando mascotas:", formData.mascotas.map(m => ({ nombre: m.nombre, chip: m.chip })))}
                 {formData.mascotas.length === 0 && (
                   <View style={styles.noAnimalsContainer}>
                     <Text style={styles.noAnimalsText}>No hay mascotas para mostrar. Verifica que los datos se hayan cargado correctamente.</Text>
@@ -1106,61 +1134,48 @@ export default function DatosCompletosPage() {
                       <MaterialCommunityIcons name={mascota.tipo === 'gato' ? "cat" : "dog"} size={24} color={theme.primaryColor} />
                       <Text style={styles.petCardTitle}>{mascota.nombre || `Mascota ${index + 1}`}</Text>
                     </View>
-                                         <View style={styles.inputContainer}>
-                       <Text style={[styles.label, {color: theme.secondaryColor}]}>Número de Chip *</Text>
-                       <View style={[styles.inputWrapper, errors[`mascota_${index}`] && styles.inputError]}>
-                         <MaterialIcons name="memory" size={20} color={theme.greyMedium} style={styles.inputIcon} />
-                         <TextInput
-                           style={styles.inputNoOutline}
-                           value={mascota.chip || ''}
-                           onChangeText={(text) => {
-                             console.log(`[CHIP] Escribiendo en mascota ${index}:`, text);
-                             console.log(`[CHIP] Estado actual de mascotas antes del cambio:`, formData.mascotas.map(m => ({ nombre: m.nombre, chip: m.chip })));
-                             
-                             const numericValue = text.replace(/[^0-9]/g, '').slice(0, 15);
-                             console.log(`[CHIP] Valor procesado para mascota ${index}:`, numericValue);
-                             
-                             setFormData(prevData => {
-                               // Crear una copia profunda para evitar mutaciones
-                               const updatedMascotas = prevData.mascotas.map((mascotaItem, i) => {
-                                 if (i === index) {
-                                   const updatedMascota = {
-                                     ...mascotaItem,
-                                     chip: numericValue
-                                   };
-                                   console.log(`[CHIP] Mascota ${index} actualizada:`, updatedMascota);
-                                   return updatedMascota;
-                                 }
-                                 return { ...mascotaItem }; // Copia profunda de las demás mascotas
-                               });
-                               
-                               console.log(`[CHIP] Todas las mascotas después del cambio:`, updatedMascotas.map(m => ({ nombre: m.nombre, chip: m.chip })));
-                               
-                               return {
-                                 ...prevData,
-                                 mascotas: updatedMascotas
-                               };
-                             });
-                             
-                             // Limpiar errores si es necesario
-                             if (errors[`mascota_${index}`]) {
-                               setErrors(prev => ({ ...prev, [`mascota_${index}`]: null }));
-                             }
-                           }}
-                           placeholder="Escribe 15 números"
-                           keyboardType="numeric"
-                           maxLength={15}
-                           placeholderTextColor={theme.greyMedium}
-                           autoComplete="off"
-                           autoCorrect={false}
-                           editable={true}
-                           selectTextOnFocus={false}
-                         />
-                       </View>
-                       {errors[`mascota_${index}`] && (
-                         <Text style={styles.errorText}>{errors[`mascota_${index}`]}</Text>
-                       )}
-                     </View>
+                    <View style={styles.inputContainer}>
+                      <Text style={[styles.label, {color: theme.secondaryColor}]}>Número de Chip *</Text>
+                      <View style={[styles.inputWrapper, errors[`mascota_${index}`] && styles.inputError]}>
+                        <MaterialIcons name="memory" size={20} color={theme.greyMedium} style={styles.inputIcon} />
+                        <TextInput
+                          style={styles.inputNoOutline}
+                          value={mascota.chip || ''}
+                          onChangeText={(text) => {
+                            const numericValue = text.replace(/[^0-9]/g, '').slice(0, 15);
+                            setFormData(prevData => {
+                              const updatedMascotas = prevData.mascotas.map((mascotaItem, i) => {
+                                if (i === index) {
+                                  return {
+                                    ...mascotaItem,
+                                    chip: numericValue
+                                  };
+                                }
+                                return { ...mascotaItem };
+                              });
+                              return {
+                                ...prevData,
+                                mascotas: updatedMascotas
+                              };
+                            });
+                            if (errors[`mascota_${index}`]) {
+                              setErrors(prev => ({ ...prev, [`mascota_${index}`]: null }));
+                            }
+                          }}
+                          placeholder="Escribe 15 números"
+                          keyboardType="numeric"
+                          maxLength={15}
+                          placeholderTextColor={theme.greyMedium}
+                          autoComplete="off"
+                          autoCorrect={false}
+                          editable={true}
+                          selectTextOnFocus={false}
+                        />
+                      </View>
+                      {errors[`mascota_${index}`] && (
+                        <Text style={styles.errorText}>{errors[`mascota_${index}`]}</Text>
+                      )}
+                    </View>
                   </View>
                 ))}
               </FadeInSection>
@@ -1168,37 +1183,22 @@ export default function DatosCompletosPage() {
               <FadeInSection animationKey="submit-button" style={styles.submitButtonContainer}>
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                   <TouchableOpacity
-                    style={styles.submitButton}
-                    onPress={() => {
-                    console.log("[DatosCompletos] Navegando a pasarela de pago");
-                    
-                    // Obtener datos del plan seleccionado o usar valores por defecto
-                    const planNombre = formData.planSeleccionado?.nombre || 'Plan Básico';
-                    const precioBase = formData.planSeleccionado?.precio || 29.00;
-                    const precioTotal = precioBase + (seguroCivil ? precioCivil : 0);
-                    
-                    const pagoParams = {
-                      planNombre: planNombre,
-                      precioBase: precioBase.toFixed(2),
-                      seguroCivil: seguroCivil.toString(),
-                      precioTotal: precioTotal.toFixed(2),
-                      fromDatosCompletos: 'true'
-                    };
-                    
-                    console.log("[DatosCompletos] Parámetros de pago:", pagoParams);
-                    router.push({
-                      pathname: '/pasarelaPago',
-                      params: pagoParams
-                    });
-                  }}
-                >
-                  <Text style={styles.submitButtonText}>Continuar al Pago</Text>
-                  <MaterialIcons name="arrow-forward" size={24} color={theme.white} />
-                </TouchableOpacity>
+                    style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+                    onPress={handleSubmit}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator color={theme.white} size="small" />
+                    ) : (
+                      <>
+                        <Text style={styles.submitButtonText}>Continuar al Pago</Text>
+                        <MaterialIcons name="arrow-forward" size={24} color={theme.white} />
+                      </>
+                    )}
+                  </TouchableOpacity>
                 </Animated.View>
               </FadeInSection>
 
-              {/* Botón para ir atrás */}
               <FadeInSection animationKey="back-button" style={styles.backButtonContainer}>
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                   <TouchableOpacity
@@ -1207,7 +1207,6 @@ export default function DatosCompletosPage() {
                       console.log("[DatosCompletos] Navegando a presupuestoFinal");
                       console.log("[DatosCompletos] Parámetros actuales para volver:", params);
                       
-                      // Navegar de vuelta con los parámetros originales para preservar el estado
                       const backParams = {
                         animals: params.animals,
                         ownerData: params.ownerData,
@@ -1244,12 +1243,27 @@ export default function DatosCompletosPage() {
                 <View style={styles.resumenCardHeader}>
                   <MaterialCommunityIcons name="account-circle" size={36} color={theme.primaryColor} style={styles.cardIcon} />
                   <Text style={styles.resumenCardTitle}>Datos Personales</Text>
-                  <View style={styles.badge}><Text style={styles.badgeText}>¡Tú!</Text></View>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>¡Tú!</Text>
+                  </View>
                 </View>
                 <View style={styles.resumenCardBody}>
-                  <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Tipo de Documento:</Text> {formData.tipoDocumento}</Text>
-                  <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>{formData.tipoDocumento}:</Text> {formData.numeroDocumento}</Text>
-                  <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Nacimiento:</Text> {formData.fechaNacimiento && !isNaN(new Date(formData.fechaNacimiento).getTime()) ? new Date(formData.fechaNacimiento).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : 'No especificada'}</Text>
+                  <Text style={styles.resumenDato}>
+                    <Text style={styles.resumenLabel}>Tipo de Documento: </Text>
+                    <Text>{formData.tipoDocumento}</Text>
+                  </Text>
+                  <Text style={styles.resumenDato}>
+                    <Text style={styles.resumenLabel}>{formData.tipoDocumento}: </Text>
+                    <Text>{formData.numeroDocumento}</Text>
+                  </Text>
+                  <Text style={styles.resumenDato}>
+                    <Text style={styles.resumenLabel}>Nacimiento: </Text>
+                    <Text>
+                      {formData.fechaNacimiento && !isNaN(new Date(formData.fechaNacimiento).getTime()) 
+                        ? new Date(formData.fechaNacimiento).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) 
+                        : 'No especificada'}
+                    </Text>
+                  </Text>
                 </View>
               </FadeInSection>
 
@@ -1257,18 +1271,34 @@ export default function DatosCompletosPage() {
                 <View style={styles.resumenCardHeader}>
                   <MaterialCommunityIcons name="map-marker-radius" size={36} color={theme.accentColor} style={styles.cardIcon} />
                   <Text style={styles.resumenCardTitle}>Dirección</Text>
-                  <View style={[styles.badge, {backgroundColor: theme.accentColor+'33'}]}><Text style={[styles.badgeText, {color: theme.accentColor}]}>Hogar</Text></View>
+                  <View style={[styles.badge, {backgroundColor: theme.accentColor+'33'}]}>
+                    <Text style={[styles.badgeText, {color: theme.accentColor}]}>Hogar</Text>
+                  </View>
                 </View>
                 <View style={styles.resumenCardBody}>
                   <Text style={styles.resumenDato}>
-                    <Text style={styles.resumenLabel}>Dirección:</Text> 
-                    {` ${tiposVia.find(t => t.value === formData.tipoVia)?.label || formData.tipoVia} ${formData.nombreVia} ${formData.numero}`}
-                    {formData.escalera ? `, Escalera ${formData.escalera}` : ''}
-                    {`, ${formData.piso}, Puerta ${formData.puerta}`}
+                    <Text style={styles.resumenLabel}>Dirección: </Text>
+                    <Text>
+                      {tiposVia.find(t => t.value === formData.tipoVia)?.label || formData.tipoVia}
+                      {formData.nombreVia ? ` ${formData.nombreVia}` : ''}
+                      {formData.numero ? ` ${formData.numero}` : ''}
+                      {formData.escalera ? `, Escalera ${formData.escalera}` : ''}
+                      {formData.piso ? `, ${formData.piso}` : ''}
+                      {formData.puerta ? `, Puerta ${formData.puerta}` : ''}
+                    </Text>
                   </Text>
-                  <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Código Postal:</Text> {formData.codigoPostal}</Text>
-                  <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Provincia:</Text> {formData.provincia || 'No especificada'}</Text>
-                  <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Comunidad:</Text> {formData.comunidadAutonoma || 'No especificada'}</Text>
+                  <Text style={styles.resumenDato}>
+                    <Text style={styles.resumenLabel}>Código Postal: </Text>
+                    <Text>{formData.codigoPostal}</Text>
+                  </Text>
+                  <Text style={styles.resumenDato}>
+                    <Text style={styles.resumenLabel}>Provincia: </Text>
+                    <Text>{formData.provincia || 'No especificada'}</Text>
+                  </Text>
+                  <Text style={styles.resumenDato}>
+                    <Text style={styles.resumenLabel}>Comunidad: </Text>
+                    <Text>{formData.comunidadAutonoma || 'No especificada'}</Text>
+                  </Text>
                 </View>
               </FadeInSection>
 
@@ -1276,15 +1306,23 @@ export default function DatosCompletosPage() {
                 <View style={styles.resumenCardHeader}>
                   <MaterialCommunityIcons name="paw" size={36} color={theme.success} style={styles.cardIcon} />
                   <Text style={styles.resumenCardTitle}>Mascotas</Text>
-                  <View style={[styles.badge, {backgroundColor: theme.success+'33'}]}><Text style={[styles.badgeText, {color: theme.success}]}>Peludos</Text></View>
+                  <View style={[styles.badge, {backgroundColor: theme.success+'33'}]}>
+                    <Text style={[styles.badgeText, {color: theme.success}]}>Peludos</Text>
+                  </View>
                 </View>
                 <View style={styles.resumenCardBody}>
                   {formData.mascotas.map((m, i) => (
                     <View key={i} style={styles.petRow}>
                       <MaterialCommunityIcons name={m.tipo === 'gato' ? "cat" : "dog"} size={24} color={theme.primaryColor} style={{marginRight: 8}} />
                       <View>
-                        <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Nombre:</Text> {m.nombre}</Text>
-                        <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Chip:</Text> {m.chip}</Text>
+                        <Text style={styles.resumenDato}>
+                          <Text style={styles.resumenLabel}>Nombre: </Text>
+                          <Text>{m.nombre ? m.nombre : 'Sin nombre'}</Text>
+                        </Text>
+                        <Text style={styles.resumenDato}>
+                          <Text style={styles.resumenLabel}>Chip: </Text>
+                          <Text>{m.chip ? m.chip : 'Sin chip'}</Text>
+                        </Text>
                       </View>
                     </View>
                   ))}
@@ -1296,11 +1334,19 @@ export default function DatosCompletosPage() {
                   <View style={styles.resumenCardHeader}>
                     <MaterialCommunityIcons name="shield-check" size={36} color={theme.secondaryColor} style={styles.cardIcon} />
                     <Text style={styles.resumenCardTitle}>Plan Seleccionado</Text>
-                    <View style={[styles.badge, {backgroundColor: theme.secondaryColor+'33'}]}><Text style={[styles.badgeText, {color: theme.secondaryColor}]}>Seguro</Text></View>
+                    <View style={[styles.badge, {backgroundColor: theme.secondaryColor+'33'}]}>
+                      <Text style={[styles.badgeText, {color: theme.secondaryColor}]}>Seguro</Text>
+                    </View>
                   </View>
                   <View style={styles.resumenCardBody}>
-                    <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Plan:</Text> {formData.planSeleccionado.nombre}</Text>
-                    <Text style={styles.resumenDato}><Text style={styles.resumenLabel}>Precio base:</Text> {formData.planSeleccionado.precio?.toFixed(2)}€/mes</Text>
+                    <Text style={styles.resumenDato}>
+                      <Text style={styles.resumenLabel}>Plan: </Text>
+                      <Text>{formData.planSeleccionado?.nombre || 'No especificado'}</Text>
+                    </Text>
+                    <Text style={styles.resumenDato}>
+                      <Text style={styles.resumenLabel}>Precio base: </Text>
+                      <Text>{formData.planSeleccionado?.precio?.toFixed(2)}€/mes</Text>
+                    </Text>
                   </View>
                 </FadeInSection>
               )}
@@ -1309,21 +1355,24 @@ export default function DatosCompletosPage() {
                 <View style={styles.resumenCardHeader}>
                   <MaterialCommunityIcons name="account-cash" size={36} color={theme.error} style={styles.cardIcon} />
                   <Text style={styles.resumenCardTitle}>Seguro Responsabilidad Civil</Text>
-                  <View style={[styles.badge, {backgroundColor: theme.error+'33'}]}><Text style={[styles.badgeText, {color: theme.error}]}>Opcional</Text></View>
+                  <View style={[styles.badge, {backgroundColor: theme.error+'33'}]}>
+                    <Text style={[styles.badgeText, {color: theme.error}]}>Opcional</Text>
+                  </View>
                 </View>
                 <View style={styles.resumenCardBody}>
-                  <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 8, justifyContent: 'space-between'}}>
-                    <Text style={[styles.resumenDato, { flex: 1 }]}>Añadir seguro de responsabilidad civil.</Text>
+                  <View style={styles.switchContainer}>
+                    <Text style={styles.resumenDato}>Añadir seguro de responsabilidad civil</Text>
                     <Switch
                       value={seguroCivil}
                       onValueChange={setSeguroCivil}
                       thumbColor={seguroCivil ? theme.primaryColor : theme.greyLight}
                       trackColor={{false: theme.greyMedium, true: theme.accentColor}}
-                      style={{marginLeft: 12}}
-                      ios_backgroundColor={theme.greyLight}
+                      style={styles.switch}
                     />
                   </View>
-                  {seguroCivil && <Text style={{color: theme.error, fontWeight: 'bold', textAlign:'right'}}>+{precioCivil.toFixed(2)}€/mes</Text>}
+                  {seguroCivil && (
+                    <Text style={styles.civilPriceText}>+{precioCivil.toFixed(2)}€/mes</Text>
+                  )}
                 </View>
               </FadeInSection>
 
@@ -1331,10 +1380,12 @@ export default function DatosCompletosPage() {
                 <View style={styles.resumenCardHeader}>
                   <MaterialCommunityIcons name="cash-multiple" size={36} color={theme.white} style={styles.cardIcon} />
                   <Text style={[styles.resumenCardTitle, {color: theme.white}]}>Precio Final Estimado</Text>
-                  <View style={[styles.badge, {backgroundColor: theme.white+'33'}]}><Text style={[styles.badgeText, {color: theme.white}]}>Total</Text></View>
+                  <View style={[styles.badge, {backgroundColor: theme.white+'33'}]}>
+                    <Text style={[styles.badgeText, {color: theme.white}]}>Total</Text>
+                  </View>
                 </View>
                 <View style={styles.resumenCardBody}>
-                  <Text style={[styles.finalPriceText, {color: theme.white, fontSize: 36, fontWeight: 'bold'}]}>
+                  <Text style={[styles.finalPriceText, {color: theme.white}]}>
                     {finalPrice.toFixed(2)}€/mes
                   </Text>
                 </View>
@@ -1342,24 +1393,24 @@ export default function DatosCompletosPage() {
 
               <TouchableOpacity 
                 style={styles.resumenSubmitButton} 
-                onPress={() => {
-                    if (Platform.OS === 'web') {
-                        window.alert('¡Datos enviados!', 'Tu solicitud ha sido registrada. (Simulación)');
-                    } else {
-                        Alert.alert('¡Datos enviados!', 'Tu solicitud ha sido registrada. (Simulación)');
-                    }
-                    router.replace('/');
-                }}
-              > 
-                <Text style={styles.resumenSubmitButtonText}>Confirmar y Enviar</Text>
-                <MaterialIcons name="check-circle" size={28} color={theme.white} style={{marginLeft: 12}} />
+                onPress={handleSubmit}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={theme.white} size="small" />
+                ) : (
+                  <>
+                    <Text style={styles.resumenSubmitButtonText}>Confirmar y Enviar</Text>
+                    <MaterialIcons name="check-circle" size={28} color={theme.white} style={styles.submitButtonIcon} />
+                  </>
+                )}
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.resumenSubmitButton, {backgroundColor: theme.greyMedium, marginTop: spacing.medium}]} 
+                style={[styles.resumenSubmitButton, {backgroundColor: theme.greyMedium}]} 
                 onPress={() => setShowResumen(false)}
-              > 
-                <MaterialIcons name="edit" size={24} color={theme.white} style={{marginRight: 12}} />
+              >
+                <MaterialIcons name="edit" size={24} color={theme.white} style={styles.editButtonIcon} />
                 <Text style={styles.resumenSubmitButtonText}>Editar Datos</Text>
               </TouchableOpacity>
 
@@ -1615,6 +1666,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.3)',
     position: 'relative',
     overflow: 'hidden',
+  },
+  submitButtonDisabled: {
+    backgroundColor: theme.greyMedium,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   submitButtonText: {
     ...typography.button,
@@ -1888,6 +1943,36 @@ const styles = StyleSheet.create({
     color: theme.error,
     textAlign: 'center',
     fontWeight: '600',
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.small,
+  },
+  switch: {
+    marginLeft: spacing.medium,
+  },
+  civilPriceText: {
+    color: theme.error,
+    fontWeight: 'bold',
+    textAlign: 'right',
+  },
+  submitButtonIcon: {
+    marginLeft: spacing.medium,
+  },
+  editButtonIcon: {
+    marginRight: spacing.medium,
+  },
+  placeholderTextNative: {
+    fontSize: 16,
+    color: theme.greyMedium,
+    paddingVertical: 15,
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: theme.borderColor,
+    borderRadius: theme.borderRadius,
+    backgroundColor: theme.greyLight,
   },
 });
 

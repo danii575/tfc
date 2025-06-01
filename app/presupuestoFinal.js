@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { sendPresupuestoEmail } from './services/emailService';
 
 import Header from '../components/Header';
 import { useAuth } from './_layout';
@@ -500,6 +501,48 @@ export default function PresupuestoFinalPage() {
     }
   };
 
+  const handleEnviarPresupuesto = async () => {
+    try {
+      // Verificar que tenemos un email válido
+      if (!parsedOwnerData.email) {
+        Alert.alert(
+          'Error',
+          'No se ha encontrado un correo electrónico válido. Por favor, asegúrate de haber proporcionado tu correo electrónico.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const userData = {
+        nombre: parsedOwnerData.nombre,
+        apellidos: `${parsedOwnerData.primerApellido} ${parsedOwnerData.segundoApellido}`.trim(),
+        email: parsedOwnerData.email,
+        telefono: parsedOwnerData.telefono,
+        mascotas: parsedAnimals
+      };
+
+      const planData = {
+        nombre: selectedPlan.name,
+        precio: selectedPlan.price,
+        features: selectedPlan.features
+      };
+
+      await sendPresupuestoEmail(userData, planData);
+      Alert.alert(
+        '¡Éxito!',
+        'El presupuesto ha sido enviado a tu correo electrónico.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Error al enviar el presupuesto:', error);
+      Alert.alert(
+        'Error',
+        'No se pudo enviar el presupuesto. Por favor, intenta de nuevo más tarde.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   const ownerDisplayName = parsedOwnerData?.nombre?.trim() || "Estimado Cliente";
   const petCountText = numAnimals > 0 ? (numAnimals === 1 ? `tu mascota (${parsedAnimals[0]?.nombre || 'nombre no especificado'})` : `tus ${numAnimals} mascotas`) : "tus futuras mascotas";
 
@@ -549,8 +592,8 @@ export default function PresupuestoFinalPage() {
                         </InfoCard>
                         {selectedPlan.extraInfo && <InfoCard title="Información Adicional y Extras" iconName="information-circle-outline" iconSet="Ionicons"> <Text style={styles.extraInfoText}>{selectedPlan.extraInfo}</Text> </InfoCard> }
                         <View style={styles.ctaButtonContainer}>
-                            <AnimatedButton title="Me Interesa - Solicitar Contratación" onPress={handleContratarPlan} style={styles.animatedButtonWrapper} buttonStyle={styles.mainCtaButtonInternal} textStyle={styles.mainCtaButtonText} iconName="document-text-outline" iconColor={theme.white} />
-                            <AnimatedButton title="Modificar Datos del Presupuesto" onPress={() => router.push('/presupuesto')} style={styles.animatedButtonWrapper} buttonStyle={styles.secondaryCtaButtonInternal} textStyle={styles.secondaryCtaButtonText} iconName="arrow-back-outline" iconColor={theme.primaryColor} />
+                            <AnimatedButton title="Enviar Presupuesto por Email" onPress={handleEnviarPresupuesto} style={styles.animatedButtonWrapper} buttonStyle={styles.emailButton} textStyle={styles.buttonText} iconName="mail-outline" iconSet="Ionicons" />
+                            <AnimatedButton title="Contratar Plan" onPress={handleContratarPlan} style={styles.animatedButtonWrapper} buttonStyle={styles.contratarButton} textStyle={styles.buttonText} iconName="checkmark-circle-outline" iconSet="Ionicons" />
                         </View>
                     </FadeInSection>
                 </View>
@@ -649,24 +692,23 @@ const styles = StyleSheet.create({
     height: '100%', // Aseguramos que ocupe toda la altura del contenedor
   },
   buttonTextBase: { ...typography.button, },
-  mainCtaButtonInternal: { // Estilo para el Pressable
-    backgroundColor: theme.success,
-    paddingVertical: spacing.large,
-    paddingHorizontal: spacing.extraLarge,
-    borderRadius: theme.buttonBorderRadius, // Botón tipo "pill"
-    width: '100%', // Aseguramos que ocupe todo el ancho
+  emailButton: {
+    backgroundColor: theme.secondaryColor,
+    paddingVertical: spacing.medium,
+    paddingHorizontal: spacing.large,
+    borderRadius: theme.buttonBorderRadius,
   },
-  mainCtaButtonText: { color: theme.white, fontSize: 18, },
-  secondaryCtaButtonInternal: { // Estilo para el Pressable
-    backgroundColor: theme.white,
-    borderWidth: 2,
-    borderColor: theme.primaryColor,
-    paddingVertical: spacing.large -2,
-    paddingHorizontal: spacing.extraLarge,
-    borderRadius: theme.buttonBorderRadius, // Botón tipo "pill"
-    width: '100%', // Aseguramos que ocupe todo el ancho
+  contratarButton: {
+    backgroundColor: theme.primaryColor,
+    paddingVertical: spacing.medium,
+    paddingHorizontal: spacing.large,
+    borderRadius: theme.buttonBorderRadius,
   },
-  secondaryCtaButtonText: { color: theme.primaryColor, fontSize: 16, },
+  buttonText: {
+    color: theme.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
   buttonDisabledStyle: { backgroundColor: theme.greyLight, borderColor: theme.greyMedium, opacity: 0.7 },
   buttonTextDisabledStyle: { color: theme.greyMedium, },
   footerBase: { backgroundColor: theme.secondaryColor, width: '100%', paddingVertical: spacing.large, marginTop: spacing.ultraLarge, },
@@ -680,4 +722,14 @@ const styles = StyleSheet.create({
   footerLinkHover: { opacity: 1, color: theme.primaryColor },
   copyrightContainer: { width: '100%', borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.1)', paddingTop: spacing.large, marginTop: spacing.large },
   copyrightText: { ...typography.caption, fontSize: 13, color: theme.greyMedium, textAlign: 'center' },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.medium,
+    marginTop: spacing.large,
+    flexWrap: 'wrap',
+  },
+  buttonWrapper: {
+    marginHorizontal: spacing.small,
+  },
 });
