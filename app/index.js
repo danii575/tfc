@@ -495,7 +495,6 @@ const HeroSection = React.forwardRef(({ onPressPlans }, ref) => {
   );
 });
 
-
 const AboutUsSection = React.forwardRef((props, ref) => {
   const { isMobile } = props;
   return (
