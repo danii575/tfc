@@ -51,27 +51,35 @@ const typography = {
 const spacing = { small: 8, medium: 14, large: 20, extraLarge: 28 };
 
 // Componente FormInput
-const FormInput = ({ label, icon, value, onChangeText, placeholder, keyboardType, secureTextEntry, errorText, onBlur, autoCapitalize, textContentType }) => (
-  <View style={styles.inputGroup}>
-    {label && <Text style={styles.inputLabel}>{label}</Text>}
-    <View style={[styles.inputContainerView, errorText ? styles.inputErrorBorder : null]}>
-      {icon && <MaterialIcons name={icon} size={20} color={theme.textSecondary} style={styles.inputIcon} />}
-      <TextInput
-        style={styles.input}
-        placeholder={placeholder}
-        placeholderTextColor={theme.textSecondary}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize || "none"}
-        secureTextEntry={secureTextEntry}
-        value={value}
-        onChangeText={onChangeText}
-        onBlur={onBlur}
-        textContentType={textContentType}
-      />
+const FormInput = ({ label, icon, value, onChangeText, placeholder, keyboardType, secureTextEntry, errorText, onBlur, autoCapitalize, textContentType }) => {
+  const [isFocused, setIsFocused] = useState(false);
+  return (
+    <View style={styles.inputGroup}>
+      {label && <Text style={styles.inputLabel}>{label}</Text>}
+      <View style={[
+        styles.inputContainerView,
+        errorText ? styles.inputErrorBorder : null,
+        isFocused ? styles.inputFocusedBorder : null
+      ]}>
+        {icon && <MaterialIcons name={icon} size={20} color={theme.textSecondary} style={styles.inputIcon} />}
+        <TextInput
+          style={styles.input}
+          placeholder={placeholder}
+          placeholderTextColor={theme.textSecondary}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize || "none"}
+          secureTextEntry={secureTextEntry}
+          value={value}
+          onChangeText={onChangeText}
+          onBlur={() => { setIsFocused(false); if (onBlur) onBlur(); }}
+          onFocus={() => setIsFocused(true)}
+          textContentType={textContentType}
+        />
+      </View>
+      {errorText ? <Text style={styles.errorTextFeedback}>{errorText}</Text> : null}
     </View>
-    {errorText ? <Text style={styles.errorTextFeedback}>{errorText}</Text> : null}
-  </View>
-);
+  );
+};
 
 
 export default function LoginScreen() {
@@ -194,7 +202,7 @@ const styles = StyleSheet.create({
   inputLabel: { fontSize: 14, color: theme.secondaryColor, marginBottom: spacing.small / 2, fontWeight: '500', },
   inputContainerView: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.offWhite, borderRadius: theme.borderRadius / 1.5, borderWidth: 1, borderColor: theme.greyLight, paddingHorizontal: spacing.medium, },
   inputIcon: { marginRight: spacing.medium, },
-  input: { flex: 1, paddingVertical: Platform.OS === 'ios' ? spacing.medium : spacing.medium - 2, fontSize: 16, color: theme.textPrimary, },
+  input: { flex: 1, paddingVertical: Platform.OS === 'ios' ? spacing.medium : spacing.medium - 2, fontSize: 16, color: theme.textPrimary, outlineStyle: 'none' },
   inputErrorBorder: { borderColor: theme.errorRed, borderWidth: 1.5, },
   errorTextFeedback: { color: theme.errorRed, fontSize: 13, marginTop: spacing.small / 2, marginLeft: spacing.small, },
   loginButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.primaryColor, paddingVertical: spacing.medium + 2, borderRadius: theme.borderRadius / 1.5, marginTop: spacing.large, ...theme.shadow, shadowColor: theme.primaryColor, shadowOpacity: 0.3, },
@@ -202,5 +210,6 @@ const styles = StyleSheet.create({
   loginButtonText: { ...typography.button, color: theme.white, fontSize: 17, },
   footerLinksContainer: { marginTop: spacing.extraLarge, alignItems: 'center', },
   footerLink: { color: theme.textSecondary, fontSize: 14, textAlign: 'center', },
-  footerLinkBold: { fontWeight: 'bold', color: theme.primaryColor, }
+  footerLinkBold: { fontWeight: 'bold', color: theme.primaryColor, },
+  inputFocusedBorder: { borderColor: theme.primaryColor, borderWidth: 2 },
 });

@@ -217,32 +217,49 @@ const FadeInSection = ({ children, duration = 400, style, animationKey }) => {
 };
 
 const InfoCard = ({ title, children, style, iconName, iconSet = "Ionicons", titleCentered = false, titleStyle, titleIconColor }) => (
-  // Usamos CardHoverView para el efecto de las InfoCards también, si se desea, o el HoverView original.
-  // Por ahora, mantendré el HoverView original para InfoCard para no complicarlo demasiado a menos que se pida.
   <CardHoverView style={[styles.infoCardBase, theme.shadow, style]} hoverStyle={theme.hoverShadow} scale={1.01}>
     {title && (
-        <View style={[styles.infoCardTitleContainer, titleCentered && {justifyContent: 'center'}]}>
-            {iconName && (iconSet === "Ionicons" ?
-                <Ionicons name={iconName} size={24} color={titleIconColor || theme.primaryColor} style={styles.infoCardTitleIcon} /> :
-                <MaterialCommunityIcons name={iconName} size={24} color={titleIconColor || theme.primaryColor} style={styles.infoCardTitleIcon} />
-            )}
-            <Text style={[styles.infoCardTitle, titleCentered && {textAlign: 'center', marginLeft: iconName ? spacing.small: 0}, titleStyle]}>{title}</Text>
-        </View>
+      <View style={[styles.infoCardTitleContainer, titleCentered && {justifyContent: 'center'}]}>
+        {iconName && (
+          iconSet === "Ionicons" ? (
+            <Ionicons 
+              name={iconName} 
+              size={24} 
+              color={titleIconColor || theme.primaryColor} 
+              style={styles.infoCardTitleIcon} 
+            />
+          ) : (
+            <MaterialCommunityIcons 
+              name={iconName} 
+              size={24} 
+              color={titleIconColor || theme.primaryColor} 
+              style={styles.infoCardTitleIcon} 
+            />
+          )
+        )}
+        <Text style={[
+          styles.infoCardTitle, 
+          titleCentered && {textAlign: 'center', marginLeft: iconName ? spacing.small: 0}, 
+          titleStyle
+        ]}>
+          {title}
+        </Text>
+      </View>
     )}
-    <View style={styles.infoCardContent}>{children}</View>
+    <View style={styles.infoCardContent}>
+      {children}
+    </View>
   </CardHoverView>
 );
 
 const PlanSelectionCard = ({ plan, onPress, isSelected }) => {
-  // PlanSelectionCard ahora usará CardHoverView para el efecto de hover.
-  // El TouchableOpacity interno es el hijo.
   return (
-    <CardHoverView // Usamos el CardHoverView modificado
+    <CardHoverView
       style={[
-        styles.planCard, // Este ya tiene borderRadius y otros estilos base de la tarjeta
+        styles.planCard,
         isSelected && styles.planCardSelected,
         plan.recommended && !isSelected && styles.recommendedPlanVisualHighlight,
-        theme.shadow // Aplicamos la sombra base aquí, CardHoverView aplicará hoverShadow si está en hover
+        theme.shadow
       ]}
       hoverStyle={theme.hoverShadow}
       scale={1.03}
@@ -255,7 +272,11 @@ const PlanSelectionCard = ({ plan, onPress, isSelected }) => {
             <Text style={[styles.planPrice, isSelected && styles.planPriceSelected]}>
                 {plan.priceDisplay || `${plan.price.replace('€/mes', '')}€/mes`}
             </Text>
-             {plan.recommended && !isSelected && <View style={styles.recommendedBadge}><Text style={styles.recommendedBadgeText}>Recomendado</Text></View>}
+            {plan.recommended && !isSelected && (
+              <View style={styles.recommendedBadge}>
+                <Text style={styles.recommendedBadgeText}>Recomendado</Text>
+              </View>
+            )}
             <Text style={[styles.planTeaser, isSelected && styles.planTeaserSelected]}>{plan.teaser || "Descripción breve del plan."}</Text>
 
             <View style={styles.planFeaturesList}>
@@ -265,7 +286,9 @@ const PlanSelectionCard = ({ plan, onPress, isSelected }) => {
                         <Text style={[styles.planFeatureText, isSelected && styles.planFeatureTextSelected]}>{feature}</Text>
                     </View>
                 ))}
-                {plan.features.length > 3 && <Text style={[styles.planFeatureMoreText, isSelected && styles.planFeatureTextSelected]}>y más...</Text>}
+                {plan.features.length > 3 && (
+                  <Text style={[styles.planFeatureMoreText, isSelected && styles.planFeatureTextSelected]}>y más...</Text>
+                )}
             </View>
 
             <View style={[styles.selectPlanButton, isSelected && styles.selectPlanButtonSelected, plan.recommended && !isSelected && styles.recommendedSelectButton]}>
@@ -355,12 +378,19 @@ export default function PresupuestoFinalPage() {
   const [parsedOwnerData, setParsedOwnerData] = useState({ nombre: "" });
   const [isGuestUser, setIsGuestUser] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState(params.selectedPlanId || PLANS_DATA.find(p => p.recommended)?.id || PLANS_DATA[0]?.id);
 
   useEffect(() => {
     let animalsList = [];
     if (params.animals && typeof params.animals === 'string') {
-      try { const tempAnimals = JSON.parse(params.animals); if(Array.isArray(tempAnimals)) { animalsList = tempAnimals; }
-      } catch (e) { console.error("Error parseando 'animals' en presupuestoFinal:", e); }
+      try { 
+        const tempAnimals = JSON.parse(params.animals); 
+        if(Array.isArray(tempAnimals)) { 
+          animalsList = tempAnimals; 
+        }
+      } catch (e) { 
+        console.error("Error parseando 'animals' en presupuestoFinal:", e); 
+      }
     }
     setParsedAnimals(animalsList);
 
@@ -377,41 +407,14 @@ export default function PresupuestoFinalPage() {
             telefono: ownerFromParams.telefono || ""
           }; 
         }
-        else if (currentUser) { 
-          ownerInfo = { 
-            nombre: userData?.nombre || currentUser.displayName?.split(' ')[0] || currentUser.email?.split('@')[0] || "Cliente",
-            primerApellido: userData?.primerApellido || currentUser.displayName?.split(' ')[1] || "",
-            segundoApellido: userData?.segundoApellido || currentUser.displayName?.split(' ')[2] || "",
-            email: userData?.email || currentUser.email || "",
-            telefono: userData?.telefono || ""
-          }; 
-        }
       } catch (e) {
-          console.error("Error parseando 'ownerData' en presupuestoFinal:", e);
-          if (currentUser) { 
-            ownerInfo = { 
-              nombre: userData?.nombre || currentUser.displayName?.split(' ')[0] || currentUser.email?.split('@')[0] || "Cliente",
-              primerApellido: userData?.primerApellido || currentUser.displayName?.split(' ')[1] || "",
-              segundoApellido: userData?.segundoApellido || currentUser.displayName?.split(' ')[2] || "",
-              email: userData?.email || currentUser.email || "",
-              telefono: userData?.telefono || ""
-            }; 
-          }
+        console.error("Error parseando 'ownerData' en presupuestoFinal:", e);
       }
-    } else if (currentUser) {
-        ownerInfo = { 
-          nombre: userData?.nombre || currentUser.displayName?.split(' ')[0] || currentUser.email?.split('@')[0] || "Cliente",
-          primerApellido: userData?.primerApellido || currentUser.displayName?.split(' ')[1] || "",
-          segundoApellido: userData?.segundoApellido || currentUser.displayName?.split(' ')[2] || "",
-          email: userData?.email || currentUser.email || "",
-          telefono: userData?.telefono || ""
-        };
     }
     setParsedOwnerData(ownerInfo);
-    setIsGuestUser(params.isGuest === "true" || (!params.uidUsuario && !currentUser));
-  }, [params, currentUser, userData]);
+    setIsGuestUser(params.isGuest === "true" || (!params.uidUsuario));
+  }, [params.animals, params.ownerData, params.isGuest, params.uidUsuario]); // Dependencias específicas
 
-  const [selectedPlanId, setSelectedPlanId] = useState(params.selectedPlanId || PLANS_DATA.find(p => p.recommended)?.id || PLANS_DATA[0]?.id);
   const mainScrollViewRef = useRef(null);
   const selectedPlan = PLANS_DATA.find(p => p.id === selectedPlanId);
 
@@ -428,8 +431,12 @@ export default function PresupuestoFinalPage() {
             else if (numAnimals >=3) totalMultiplier = 1 + 0.9 + ( (numAnimals - 2) * 0.85);
             const calculatedPrice = basePrice * totalMultiplier;
             finalPriceDisplay = `${calculatedPrice.toFixed(2)}€/mes (${numAnimals} mascota${numAnimals !== 1 ? 's' : ''})`;
-        } else { finalPriceDisplay = `Desde ${selectedPlan.basePriceMonthly}€/mes (Precio base individual)`; }
-    } else { finalPriceDisplay = selectedPlan.price || "Precio no disponible"; }
+        } else { 
+            finalPriceDisplay = `Desde ${selectedPlan.basePriceMonthly}€/mes (Precio base individual)`; 
+        }
+    } else { 
+        finalPriceDisplay = selectedPlan.price || "Precio no disponible"; 
+    }
   }
 
   const handleContratarPlan = async () => {
@@ -559,14 +566,16 @@ export default function PresupuestoFinalPage() {
             <View style={styles.planSectionWrapper}>
                 <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalPlanContainer} >
                     {PLANS_DATA.map((plan, index) => (
-                        <View key={plan.id} style={styles.planCardFadeWrapper}> {/* View wrapper para el FadeInSection de la tarjeta */}
-                            <FadeInSection animationKey={`plan-card-${index}-${numAnimals}`} duration={300 + index * 100} style={{flex: 1}} >{/* FadeInSection ahora es flex:1 */}
+                        <View key={plan.id} style={styles.planCardFadeWrapper}>
+                            <FadeInSection animationKey={`plan-card-${index}-${numAnimals}`} duration={300 + index * 100} style={{flex: 1}} >
                                 <PlanSelectionCard
                                     plan={plan}
                                     onPress={() => {
                                         setSelectedPlanId(plan.id);
                                         const yOffsetForDetails = Platform.OS === 'web' ? 500 : Dimensions.get('window').height * 0.4;
-                                        if (mainScrollViewRef.current) { mainScrollViewRef.current.scrollTo({ y: yOffsetForDetails, animated: true }); }
+                                        if (mainScrollViewRef.current) { 
+                                            mainScrollViewRef.current.scrollTo({ y: yOffsetForDetails, animated: true }); 
+                                        }
                                     }}
                                     isSelected={selectedPlanId === plan.id}
                                 />
@@ -580,20 +589,59 @@ export default function PresupuestoFinalPage() {
                 <View style={styles.selectedPlanDetailsSection}>
                     <FadeInSection animationKey={`plan-${selectedPlanId}-${numAnimals}`}>
                         <Text style={styles.selectedPlanTitle}>Detalles del {selectedPlan.name}</Text>
-                        <InfoCard title="Precio Estimado Final" iconName="cash-outline" style={styles.priceCard} titleCentered={true} titleStyle={styles.priceCardTitleText} titleIconColor={theme.white} >
+                        <InfoCard 
+                            title="Precio Estimado Final" 
+                            iconName="cash-outline" 
+                            style={styles.priceCard} 
+                            titleCentered={true} 
+                            titleStyle={styles.priceCardTitleText} 
+                            titleIconColor={theme.white}
+                        >
                             <Text style={styles.finalPriceText}>{finalPriceDisplay}</Text>
-                            <Text style={styles.priceDisclaimerText}>Estimación basada en el número de mascotas y plan seleccionado. El precio final puede variar según características específicas y promociones. Se confirmará antes de la contratación.</Text>
+                            <Text style={styles.priceDisclaimerText}>
+                                Estimación basada en el número de mascotas y plan seleccionado. El precio final puede variar según características específicas y promociones. Se confirmará antes de la contratación.
+                            </Text>
                         </InfoCard>
                         <InfoCard title="Coberturas Principales" iconName="shield-checkmark-outline" iconSet="Ionicons">
-                            {selectedPlan.coverage.map((item, index) => ( <View key={`cov-${index}`} style={[styles.detailListItem, index === selectedPlan.coverage.length - 1 && styles.lastDetailListItem]}> <Ionicons name="checkmark-circle-outline" size={20} color={theme.success} style={styles.listItemIcon} /> <Text style={styles.detailListText}>{item}</Text> </View> ))}
+                            {selectedPlan.coverage.map((item, index) => (
+                                <View key={`cov-${index}`} style={[styles.detailListItem, index === selectedPlan.coverage.length - 1 && styles.lastDetailListItem]}>
+                                    <Ionicons name="checkmark-circle-outline" size={20} color={theme.success} style={styles.listItemIcon} />
+                                    <Text style={styles.detailListText}>{item}</Text>
+                                </View>
+                            ))}
                         </InfoCard>
                         <InfoCard title="Exclusiones Importantes" iconName="close-circle-outline" iconSet="Ionicons">
-                             {selectedPlan.exclusions.map((item, index) => ( <View key={`exc-${index}`} style={[styles.detailListItem, index === selectedPlan.exclusions.length - 1 && styles.lastDetailListItem]}> <Ionicons name="remove-circle-outline" size={20} color={theme.error} style={styles.listItemIcon} /> <Text style={styles.detailListText}>{item}</Text> </View> ))}
+                            {selectedPlan.exclusions.map((item, index) => (
+                                <View key={`exc-${index}`} style={[styles.detailListItem, index === selectedPlan.exclusions.length - 1 && styles.lastDetailListItem]}>
+                                    <Ionicons name="remove-circle-outline" size={20} color={theme.error} style={styles.listItemIcon} />
+                                    <Text style={styles.detailListText}>{item}</Text>
+                                </View>
+                            ))}
                         </InfoCard>
-                        {selectedPlan.extraInfo && <InfoCard title="Información Adicional y Extras" iconName="information-circle-outline" iconSet="Ionicons"> <Text style={styles.extraInfoText}>{selectedPlan.extraInfo}</Text> </InfoCard> }
+                        {selectedPlan.extraInfo && (
+                            <InfoCard title="Información Adicional y Extras" iconName="information-circle-outline" iconSet="Ionicons">
+                                <Text style={styles.extraInfoText}>{selectedPlan.extraInfo}</Text>
+                            </InfoCard>
+                        )}
                         <View style={styles.ctaButtonContainer}>
-                            <AnimatedButton title="Enviar Presupuesto por Email" onPress={handleEnviarPresupuesto} style={styles.animatedButtonWrapper} buttonStyle={styles.emailButton} textStyle={styles.buttonText} iconName="mail-outline" iconSet="Ionicons" />
-                            <AnimatedButton title="Contratar Plan" onPress={handleContratarPlan} style={styles.animatedButtonWrapper} buttonStyle={styles.contratarButton} textStyle={styles.buttonText} iconName="checkmark-circle-outline" iconSet="Ionicons" />
+                            <AnimatedButton 
+                                title="Enviar Presupuesto por Email" 
+                                onPress={handleEnviarPresupuesto} 
+                                style={styles.animatedButtonWrapper} 
+                                buttonStyle={styles.emailButton} 
+                                textStyle={styles.buttonText} 
+                                iconName="mail-outline" 
+                                iconSet="Ionicons" 
+                            />
+                            <AnimatedButton 
+                                title="Contratar Plan" 
+                                onPress={handleContratarPlan} 
+                                style={styles.animatedButtonWrapper} 
+                                buttonStyle={styles.contratarButton} 
+                                textStyle={styles.buttonText} 
+                                iconName="checkmark-circle-outline" 
+                                iconSet="Ionicons" 
+                            />
                         </View>
                     </FadeInSection>
                 </View>

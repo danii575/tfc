@@ -2,9 +2,26 @@ const { Resend } = require('resend');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Función para validar email
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
 module.exports = async (req, res) => {
-  // Configurar headers CORS
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8081');
+  // Configurar headers CORS para permitir múltiples orígenes
+  const allowedOrigins = [
+    'http://localhost:8081',
+    'http://localhost:3000',
+    'https://tfg-lime.vercel.app',
+    'https://petcareseguros.vercel.app'
+  ];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -30,7 +47,11 @@ module.exports = async (req, res) => {
     console.log('Datos recibidos:', { email, planNombre });
 
     if (!email) {
-      return res.status(400).json({ error: 'No se ha proporcionado un correo electrónico válido' });
+      return res.status(400).json({ error: 'No se ha proporcionado un correo electrónico' });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'El formato del correo electrónico no es válido' });
     }
 
     const mascotasHtml = mascotas.map(mascota => `
@@ -108,7 +129,7 @@ module.exports = async (req, res) => {
 
     console.log('Intentando enviar correo a:', email);
     const { data, error } = await resend.emails.send({
-      from: 'PetCareSeguros <onboarding@resend.dev>',
+      from: 'PetCareSeguros <info@segurospeLudos.es>',
       to: [email],
       subject: `Presupuesto PetCareSeguros - Plan ${planNombre}`,
       html: htmlContent,
@@ -116,6 +137,13 @@ module.exports = async (req, res) => {
 
     if (error) {
       console.error('Error detallado al enviar el correo:', error);
+      // Manejar errores específicos de Resend
+      if (error.message.includes('Invalid email')) {
+        return res.status(400).json({ error: 'El correo electrónico no es válido', details: error });
+      }
+      if (error.message.includes('Rate limit')) {
+        return res.status(429).json({ error: 'Límite de envíos excedido', details: error });
+      }
       return res.status(500).json({ error: 'Error al enviar el correo', details: error });
     }
 
