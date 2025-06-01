@@ -6,9 +6,8 @@ export const sendPresupuestoEmail = async (userData, planData) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
       },
-      credentials: 'include',
+      mode: 'cors',
       body: JSON.stringify({ userData, planData }),
     });
 
