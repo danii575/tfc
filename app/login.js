@@ -15,7 +15,7 @@ import {
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-imp//hola 
+import { MaterialIcons } from '@expo/vector-icons';
 
 import { getAuth } from 'firebase/auth'; // Importar getAuth
 import { app as firebaseApp } from '../firebase/firebaseConfig'; // Importar firebaseApp
@@ -34,6 +34,8 @@ const theme = {
   white: '#FFFFFF',
   greyLight: '#E9ECEF',
   dark: '#343a40',
+  offWhite: '#F8F9FA',
+  greyMedium: '#ADB5BD',
   borderRadius: 12,
   shadow: Platform.select({
     ios: { shadowColor: 'rgba(0,0,0,0.08)', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 1, shadowRadius: 5 },
