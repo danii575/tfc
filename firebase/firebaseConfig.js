@@ -16,6 +16,7 @@ const firebaseConfig = {
   appId: "1:1050497908540:web:bcfbacefdcc097142d6839"
 };
 
+
 let app;
 let db;
 let storage;
