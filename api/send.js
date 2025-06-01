@@ -3,6 +3,25 @@ const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 module.exports = async (req, res) => {
+  // Configurar headers CORS
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  // Manejar preflight request
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  console.log('API Key:', process.env.RESEND_API_KEY ? 'Presente' : 'No presente');
+  console.log('Método:', req.method);
+  console.log('Body:', JSON.stringify(req.body, null, 2));
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
   }
@@ -11,6 +30,8 @@ module.exports = async (req, res) => {
     const { userData, planData } = req.body;
     const { nombre, apellidos, email, telefono, mascotas } = userData;
     const { nombre: planNombre, precio, features } = planData;
+
+    console.log('Datos recibidos:', { email, planNombre });
 
     if (!email) {
       return res.status(400).json({ error: 'No se ha proporcionado un correo electrónico válido' });
@@ -89,6 +110,7 @@ module.exports = async (req, res) => {
       </html>
     `;
 
+    console.log('Intentando enviar correo a:', email);
     const { data, error } = await resend.emails.send({
       from: 'PetCareSeguros <onboarding@resend.dev>',
       to: [email],
@@ -97,13 +119,14 @@ module.exports = async (req, res) => {
     });
 
     if (error) {
-      console.error('Error al enviar el correo:', error);
-      return res.status(500).json({ error: 'Error al enviar el correo' });
+      console.error('Error detallado al enviar el correo:', error);
+      return res.status(500).json({ error: 'Error al enviar el correo', details: error });
     }
 
+    console.log('Correo enviado exitosamente:', data);
     return res.json({ success: true, data });
   } catch (error) {
-    console.error('Error al enviar el correo:', error);
-    return res.status(500).json({ error: 'Error al enviar el correo' });
+    console.error('Error completo:', error);
+    return res.status(500).json({ error: 'Error al enviar el correo', details: error.message });
   }
 }; 
