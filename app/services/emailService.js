@@ -2,7 +2,7 @@ export const sendPresupuestoEmail = async (userData, planData) => {
   try {
     console.log('Iniciando envío de presupuesto:', { userData, planData });
     
-    const response = await fetch('https://tfg-seguros-mascota-2u6ew1ec1.vercel.app/api/send', {
+    const response = await fetch('https://tfg-lime.vercel.app/api/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
