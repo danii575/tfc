@@ -16,6 +16,7 @@ import {
   Platform,
   Easing,
   findNodeHandle, // Necesario para measureLayout en nativo, aunque deprecado
+  Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -778,7 +779,10 @@ const ProtectPetCTASection = React.forwardRef((props, ref) => {
   };
 
   const handleContactAdvisor = () => {
-    console.log("Contactar con un Asesor presionado");
+    const phoneNumber = '34667995328';
+    const message = '¡Hola! Me gustaría hablar con un asesor sobre los seguros de mascotas de PetCareSeguros. Necesito ayuda para elegir el mejor plan para mi compañero peludo';
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    Linking.openURL(whatsappUrl);
   };
 
   return (
