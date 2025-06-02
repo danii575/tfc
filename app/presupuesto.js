@@ -13,6 +13,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -572,7 +573,7 @@ const tipoExoticoOptions = [ { label: 'Conejo', value: 'conejo' }, { label: 'Hur
 // --- Fin Estados y Opciones ---
 
 // Nuevos componentes para la selección inicial
-const AnimalTypeCard = ({ type, title, onSelect, isSelected }) => {
+const AnimalTypeCard = ({ type, title, onSelect, isSelected, style }) => {
   let iconComponent = null;
   const iconColor = isSelected ? '#FFFFFF' : '#2A9D8F'; // Blanco si seleccionado, azul si no
   if (type === 'perro') {
@@ -586,7 +587,7 @@ const AnimalTypeCard = ({ type, title, onSelect, isSelected }) => {
     <TouchableOpacity 
       onPress={() => onSelect(type)}
       style={[
-        styles.animalTypeCard,
+        style,
         isSelected && styles.animalTypeCardSelected
       ]}
     >
@@ -602,6 +603,8 @@ const AnimalTypeCard = ({ type, title, onSelect, isSelected }) => {
 export default function PresupuestoPage() {
   const router = useRouter();
   const { currentUser, userData: authUserData } = useAuth(); 
+  const { width } = useWindowDimensions();
+  const isMobile = Platform.OS !== 'web' || width < 700;
 
   const [currentStep, setCurrentStep] = useState(0); 
   const [animals, setAnimals] = useState([{ ...initialAnimalState }]);
@@ -877,28 +880,60 @@ export default function PresupuestoPage() {
   // --- RENDER FUNCTIONS ---
   const renderAnimalTypeSelection = () => (
     <FadeInSection animationKey="animal-type-selection">
-      <FormCard title="Selecciona el tipo de animal">
-        <View style={styles.animalTypeContainer}>
-          <AnimalTypeCard
-            type="perro"
-            title="Perro"
-            onSelect={(type) => handleAnimalChange('tipo', type)}
-            isSelected={currentAnimalData.tipo === 'perro'}
-          />
-          <AnimalTypeCard
-            type="gato"
-            title="Gato"
-            onSelect={(type) => handleAnimalChange('tipo', type)}
-            isSelected={currentAnimalData.tipo === 'gato'}
-          />
-          <AnimalTypeCard
-            type="otro"
-            title="Otro"
-            onSelect={(type) => handleAnimalChange('tipo', type)}
-            isSelected={currentAnimalData.tipo === 'otro'}
-          />
+      {isMobile ? (
+        <View style={mobileStyles.formCard}>
+          <Text style={[styles.cardTitle, {textAlign: 'center', marginBottom: spacing.large}]}>Selecciona el tipo de animal</Text>
+          <View style={mobileStyles.animalTypeContainer}>
+            <AnimalTypeCard
+              type="perro"
+              title="Perro"
+              onSelect={(type) => handleAnimalChange('tipo', type)}
+              isSelected={currentAnimalData.tipo === 'perro'}
+              style={mobileStyles.animalTypeCard}
+            />
+            <AnimalTypeCard
+              type="gato"
+              title="Gato"
+              onSelect={(type) => handleAnimalChange('tipo', type)}
+              isSelected={currentAnimalData.tipo === 'gato'}
+              style={mobileStyles.animalTypeCard}
+            />
+            <AnimalTypeCard
+              type="otro"
+              title="Otro"
+              onSelect={(type) => handleAnimalChange('tipo', type)}
+              isSelected={currentAnimalData.tipo === 'otro'}
+              style={mobileStyles.animalTypeCard}
+            />
+          </View>
         </View>
-      </FormCard>
+      ) : (
+        <FormCard title="Selecciona el tipo de animal">
+          <View style={styles.animalTypeContainer}>
+            <AnimalTypeCard
+              type="perro"
+              title="Perro"
+              onSelect={(type) => handleAnimalChange('tipo', type)}
+              isSelected={currentAnimalData.tipo === 'perro'}
+              style={styles.animalTypeCard}
+            />
+            <AnimalTypeCard
+              type="gato"
+              title="Gato"
+              onSelect={(type) => handleAnimalChange('tipo', type)}
+              isSelected={currentAnimalData.tipo === 'gato'}
+              style={styles.animalTypeCard}
+            />
+            <AnimalTypeCard
+              type="otro"
+              title="Otro"
+              onSelect={(type) => handleAnimalChange('tipo', type)}
+              isSelected={currentAnimalData.tipo === 'otro'}
+              style={styles.animalTypeCard}
+            />
+          </View>
+        </FormCard>
+      )}
     </FadeInSection>
   );
 
@@ -1121,75 +1156,25 @@ export default function PresupuestoPage() {
               {renderReviewSection(discoveryDetails.title, discoveryDetails.icon, discoveryDetails.data, discoveryDetails.onEdit)} 
             </View> 
           )} 
-          <View style={styles.navigationButtons}> 
-            <FormButton 
-              title="Atrás" 
-              onPress={prevStepAction} 
-              variant="secondary" 
-              style={styles.navigationButton} 
-              iconName="arrow-back" 
-            /> 
+          <View style={isMobile ? mobileStyles.navigationButtons : styles.navigationButtons}> 
+            {isMobile ? (
+              <>
                 <FormButton 
-                    title={isLoading ? "Procesando..." : (currentUser ? "Guardar y Ver Opciones" : "Ver Opciones de Seguro")} 
-                    onPress={handleSubmit} 
-                    disabled={isLoading} 
-              style={[styles.navigationButton, { backgroundColor: theme.success }]} 
-                    iconName={currentUser ? "price-check" : "eye-outline"} 
-                    iconSet={currentUser ? "MaterialIcons" : "Ionicons"} 
-                /> 
-            </View> 
-        </FormCard> 
-      </FadeInSection> 
-    ); 
-  };
-  
-  const showFooterBackButton = (currentStep === 0 && currentAnimalIndex > 0) || currentStep === 0.5 || currentStep === 1 || currentStep === 2;
-
-  // Nuevo paso especial para elegir entre añadir otra mascota o continuar
-  const renderAddOrContinue = () => (
-    <FadeInSection animationKey="add-or-continue">
-      <FormCard title={`¿Quieres añadir otra mascota?`}>
-        <Text style={{ textAlign: 'center', marginBottom: 24, fontSize: 16 }}>
-          Puedes añadir tantas mascotas como quieras antes de continuar.
-        </Text>
-        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16 }}>
-          <FormButton
-            title="Añadir otra mascota"
-            onPress={addAnotherAnimalAction}
-            iconName="add"
-            style={{ minWidth: 180, marginRight: 8 }}
-          />
-          <FormButton
-            title="Continuar"
-            onPress={() => {
-              if (!validateAnimalFields(currentAnimalIndex, true)) return;
-              setCurrentStep(2);
-            }}
-            iconName="arrow-forward"
-            style={{ minWidth: 180, marginLeft: 8 }}
-          />
-        </View>
-      </FormCard>
-    </FadeInSection>
-  );
-
-  return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-      <View style={styles.outerContainer}>
-        <Header title="Solicitar Presupuesto" onNavigateToHome={router.canGoBack() ? () => router.back() : () => router.push('/')} />
-        <ProgressBar current={typeof currentStep === 'number' ? currentStep + 1 : 2} total={5} />
-        <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.innerContainer}>
-            {currentStep === 0 && renderAnimalTypeSelection()}
-            {currentStep === 1 && renderBasicAnimalForm()}
-            {currentStep === 'addOrContinue' && renderAddOrContinue()}
-            {currentStep === 2 && renderAdditionalInfoForm()}
-            {currentStep === 3 && renderOwnerForm()}
-            {currentStep === 4 && renderReview()}
-
-            {/* Navegación solo para pasos normales (0-3) y no en addOrContinue */}
-            {currentStep !== 4 && currentStep !== 'addOrContinue' && (
-              <View style={styles.navigationButtons}>
+                  title="Siguiente" 
+                  onPress={nextStepAction} 
+                  style={mobileStyles.navigationButton} 
+                  iconName="arrow-forward" 
+                />
+                <FormButton 
+                  title="Atrás" 
+                  onPress={prevStepAction} 
+                  variant="secondary" 
+                  style={[mobileStyles.navigationButton, mobileStyles.backButtonFullWidth]} 
+                  iconName="arrow-back" 
+                />
+              </>
+            ) : (
+              <>
                 <FormButton 
                   title="Atrás" 
                   onPress={prevStepAction} 
@@ -1203,6 +1188,119 @@ export default function PresupuestoPage() {
                   style={styles.navigationButton} 
                   iconName="arrow-forward" 
                 />
+              </>
+            )}
+          </View>  
+        </FormCard> 
+      </FadeInSection> 
+    ); 
+  };
+  
+  const showFooterBackButton = (currentStep === 0 && currentAnimalIndex > 0) || currentStep === 0.5 || currentStep === 1 || currentStep === 2;
+
+  // Nuevo paso especial para elegir entre añadir otra mascota o continuar
+  const renderAddOrContinue = () => (
+    <FadeInSection animationKey="add-or-continue">
+      {isMobile ? (
+        <View style={mobileStyles.addOrContinueCard}>
+          <Text style={[styles.cardTitle, {textAlign: 'center', marginBottom: spacing.large}]}>¿Quieres añadir otra mascota?</Text>
+          <Text style={mobileStyles.addOrContinueText}>
+            Puedes añadir tantas mascotas como quieras antes de continuar.
+          </Text>
+          <View style={mobileStyles.addOrContinueButtons}>
+            <FormButton
+              title="Añadir otra mascota"
+              onPress={addAnotherAnimalAction}
+              iconName="add"
+              style={mobileStyles.addOrContinueButton}
+            />
+            <FormButton
+              title="Continuar"
+              onPress={() => {
+                if (!validateAnimalFields(currentAnimalIndex, true)) return;
+                setCurrentStep(2);
+              }}
+              iconName="arrow-forward"
+              style={mobileStyles.addOrContinueButton}
+            />
+          </View>
+        </View>
+      ) : (
+        <FormCard title={`¿Quieres añadir otra mascota?`}>
+          <Text style={{ textAlign: 'center', marginBottom: 24, fontSize: 16 }}>
+            Puedes añadir tantas mascotas como quieras antes de continuar.
+          </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16 }}>
+            <FormButton
+              title="Añadir otra mascota"
+              onPress={addAnotherAnimalAction}
+              iconName="add"
+              style={{ minWidth: 180, marginRight: 8 }}
+            />
+            <FormButton
+              title="Continuar"
+              onPress={() => {
+                if (!validateAnimalFields(currentAnimalIndex, true)) return;
+                setCurrentStep(2);
+              }}
+              iconName="arrow-forward"
+              style={{ minWidth: 180, marginLeft: 8 }}
+            />
+          </View>
+        </FormCard>
+      )}
+    </FadeInSection>
+  );
+
+  return (
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      <View style={[styles.outerContainer, isMobile && { maxWidth: '100vw', width: '100vw', overflowX: 'hidden', padding: 0 }]}>
+        <Header title="Solicitar Presupuesto" onNavigateToHome={router.canGoBack() ? () => router.back() : () => router.push('/')} isMobile={isMobile} />
+        <ProgressBar current={typeof currentStep === 'number' ? currentStep + 1 : 2} total={5} />
+        <ScrollView ref={scrollViewRef} contentContainerStyle={[styles.scrollContainer, isMobile && { paddingHorizontal: 0 }]} horizontal={false} style={isMobile ? { width: '100vw', maxWidth: '100vw', overflowX: 'hidden' } : {}} showsHorizontalScrollIndicator={false}>
+          <View style={[styles.innerContainer, isMobile && { width: '100vw', maxWidth: '100vw', overflowX: 'hidden', padding: 0 }]}>
+            {currentStep === 0 && renderAnimalTypeSelection()}
+            {currentStep === 1 && renderBasicAnimalForm()}
+            {currentStep === 'addOrContinue' && renderAddOrContinue()}
+            {currentStep === 2 && renderAdditionalInfoForm()}
+            {currentStep === 3 && renderOwnerForm()}
+            {currentStep === 4 && renderReview()}
+            {/* Navegación solo para pasos normales (0-3) y no en addOrContinue */}
+            {currentStep !== 4 && currentStep !== 'addOrContinue' && (
+              <View style={isMobile ? mobileStyles.navigationButtons : styles.navigationButtons}>
+                {isMobile ? (
+                  <>
+                    <FormButton 
+                      title="Siguiente" 
+                      onPress={nextStepAction} 
+                      style={mobileStyles.navigationButton} 
+                      iconName="arrow-forward" 
+                    />
+                    <FormButton 
+                      title="Atrás" 
+                      onPress={prevStepAction} 
+                      variant="secondary" 
+                      style={[mobileStyles.navigationButton, mobileStyles.backButtonFullWidth]} 
+                      iconName="arrow-back" 
+                    />
+                  </>
+                ) : (
+                  <>
+                    <FormButton 
+                      title="Atrás" 
+                      onPress={prevStepAction} 
+                      variant="secondary" 
+                      style={styles.navigationButton} 
+                      iconName="arrow-back" 
+                    />
+                    <FormButton 
+                      title="Siguiente" 
+                      onPress={nextStepAction} 
+                      style={styles.navigationButton} 
+                      iconName="arrow-forward" 
+                    />
+                  </>
+                )}
               </View>
             )}
           </View>
@@ -1264,6 +1362,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.large,
     borderRadius: theme.borderRadius * 2,
     minHeight: 50,
+    height: 50,
+    width: '100%',
+    minWidth: '100%',
+    maxWidth: '100%',
     overflow: 'hidden',
     ...Platform.select({
       web: {
@@ -1273,6 +1375,8 @@ const styles = StyleSheet.create({
   },
   buttonPrimary: {
     backgroundColor: theme.primaryColor,
+    paddingHorizontal: spacing.large,
+    fontSize: 16,
     ...Platform.select({
       web: {
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
@@ -1283,6 +1387,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.white,
     borderColor: theme.primaryColor,
     borderWidth: 1.5,
+    paddingHorizontal: spacing.large,
+    fontSize: 16,
     ...Platform.select({
       web: {
         boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
@@ -1309,7 +1415,7 @@ const styles = StyleSheet.create({
     color: theme.greyMedium,
   },
   navigationButtons: {
-    flexDirection: 'row',
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: spacing.large,
@@ -1321,11 +1427,16 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   navigationButton: {
-    width: 200,
+    width: Platform.OS === 'web' ? 220 : '100%',
+    minWidth: Platform.OS === 'web' ? 220 : '100%',
+    maxWidth: Platform.OS === 'web' ? 220 : '100%',
     height: 50,
-    flex: 0,
     minHeight: 50,
     maxHeight: 50,
+    marginBottom: spacing.small,
+    alignSelf: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   submitButtonInReview: {
     backgroundColor: theme.success,
@@ -1465,14 +1576,16 @@ const styles = StyleSheet.create({
   },
   animalTypeContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexWrap: 'nowrap',
     gap: spacing.medium,
     padding: spacing.medium,
   },
   animalTypeCard: {
-    flex: 1,
+    width: 150,
     minWidth: 150,
+    maxWidth: 200,
     aspectRatio: 1,
     backgroundColor: theme.white,
     borderRadius: theme.borderRadius,
@@ -1483,6 +1596,7 @@ const styles = StyleSheet.create({
     borderColor: '#2A9D8F',
     ...theme.shadow,
     transition: 'background-color 0.2s',
+    marginBottom: 0,
   },
   animalTypeCardSelected: {
     backgroundColor: '#2A9D8F',
@@ -1495,5 +1609,108 @@ const styles = StyleSheet.create({
   },
   animalTypeTitleSelected: {
     color: theme.white,
+  },
+});
+
+// --- ESTILOS SOLO PARA MÓVIL ---
+const mobileStyles = StyleSheet.create({
+  animalTypeContainer: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.medium,
+    padding: spacing.medium,
+    width: '100%',
+    borderWidth: 2,
+    borderColor: '#2A9D8F',
+    borderRadius: theme.borderRadius,
+    backgroundColor: theme.white,
+  },
+  animalTypeCard: {
+    width: '100%',
+    minWidth: '100%',
+    maxWidth: '100%',
+    aspectRatio: 1,
+    marginBottom: spacing.medium,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.white,
+    borderWidth: 2,
+    borderColor: '#2A9D8F',
+    borderRadius: theme.borderRadius,
+    ...theme.shadow,
+  },
+  formCard: {
+    backgroundColor: theme.white,
+    borderRadius: theme.borderRadius,
+    padding: spacing.large,
+    marginBottom: spacing.large,
+    borderWidth: 1,
+    borderColor: theme.greyLight,
+    width: '100%',
+    alignSelf: 'center',
+    boxSizing: 'border-box',
+  },
+  addOrContinueCard: {
+    backgroundColor: theme.white,
+    borderRadius: theme.borderRadius,
+    padding: spacing.large,
+    marginBottom: spacing.large,
+    borderWidth: 1,
+    borderColor: theme.greyLight,
+    width: '92%',
+    alignSelf: 'center',
+    boxSizing: 'border-box',
+    maxWidth: 400,
+  },
+  addOrContinueText: {
+    textAlign: 'center',
+    marginBottom: 24,
+    fontSize: 16,
+    color: theme.secondaryColor,
+  },
+  addOrContinueButtons: {
+    flexDirection: 'column',
+    gap: spacing.small,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addOrContinueButton: {
+    width: '100%',
+    minWidth: '100%',
+    maxWidth: '100%',
+    height: 50,
+    minHeight: 50,
+    maxHeight: 50,
+    marginBottom: spacing.small,
+    alignSelf: 'center',
+  },
+  navigationButtons: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.small,
+    paddingHorizontal: spacing.medium,
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
+    marginTop: spacing.large,
+    marginBottom: spacing.large,
+  },
+  navigationButton: {
+    width: '100%',
+    minWidth: '100%',
+    maxWidth: '100%',
+    height: 50,
+    minHeight: 50,
+    maxHeight: 50,
+    marginBottom: spacing.small,
+  },
+  backButtonFullWidth: {
+    width: '100%',
+    minWidth: '100%',
+    maxWidth: '100%',
+    alignSelf: 'center',
   },
 });
