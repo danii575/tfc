@@ -124,6 +124,11 @@ const images = {
   GALLERY_2: require("../assets/images/pet-hero.png"),
   GALLERY_3: require("../assets/images/pet-hero.png"),
   GALLERY_4: require("../assets/images/pet-hero.png"),
+  GALLERY_5: require("../assets/images/pet-hero.png"),
+  GALLERY_6: require("../assets/images/pet-hero.png"),
+  GALLERY_7: require("../assets/images/pet-hero.png"),
+  GALLERY_8: require("../assets/images/pet-hero.png"),
+  GALLERY_9: require("../assets/images/pet-hero.png"),
 };
 
 // --- Datos ---
@@ -190,27 +195,60 @@ const STEPS = [
   },
 ];
 const TESTIMONIALS = [
-    {
+  {
     id: "1",
-    quote:
-      "Excelente servicio, mi perro recibió la mejor atención cuando más lo necesitaba. El reembolso fue rápido y sin complicaciones.",
+    quote: "Excelente servicio, mi perro recibió la mejor atención cuando más lo necesitaba. El reembolso fue rápido y sin complicaciones.",
     author: "Ana G.",
     pet: "Toby, Labrador",
   },
   {
     id: "2",
-    quote:
-      "Los reembolsos fueron rápidos y el proceso muy sencillo. La atención telefónica es excelente, muy recomendable.",
+    quote: "Los reembolsos fueron rápidos y el proceso muy sencillo. La atención telefónica es excelente, muy recomendable.",
     author: "Luis M.",
     pet: "Luna, Mestizo",
   },
   {
     id: "3",
-    quote:
-      "Estoy tranquilo sabiendo que mi gata está protegida. El plan premium vale cada euro, especialmente por la cobertura de medicamentos.",
+    quote: "Estoy tranquilo sabiendo que mi gata está protegida. El plan premium vale cada euro, especialmente por la cobertura de medicamentos.",
     author: "Carla R.",
     pet: "Mía, Siamés",
   },
+  {
+    id: "4",
+    quote: "La app es muy intuitiva y el servicio de emergencias 24/7 me da mucha tranquilidad. Totalmente recomendable.",
+    author: "María S.",
+    pet: "Rocky, Pastor Alemán",
+  },
+  {
+    id: "5",
+    quote: "El veterinario asignado es muy profesional y atento. Las consultas online son muy útiles para dudas rápidas.",
+    author: "Juan P.",
+    pet: "Nala, Golden Retriever",
+  },
+  {
+    id: "6",
+    quote: "La cobertura dental incluida en el plan premium ha sido un gran alivio. El proceso de reembolso es muy sencillo.",
+    author: "Laura M.",
+    pet: "Max, Yorkshire",
+  },
+  {
+    id: "7",
+    quote: "El servicio de recordatorio de vacunas es muy útil. Nunca más se me ha olvidado una cita importante.",
+    author: "Pedro L.",
+    pet: "Lola, Bulldog Francés",
+  },
+  {
+    id: "8",
+    quote: "La atención personalizada y el seguimiento del caso de mi perro ha sido excepcional. Muy agradecido.",
+    author: "Sofía C.",
+    pet: "Thor, Husky Siberiano",
+  },
+  {
+    id: "9",
+    quote: "El plan nutricional personalizado ha mejorado mucho la salud de mi gato. El asesoramiento es excelente.",
+    author: "Diego R.",
+    pet: "Milo, Maine Coon",
+  }
 ];
 const FAQS = [
     {
@@ -286,7 +324,7 @@ const HoverButton = ({ onPress, style, children, activeOpacity = 0.8, hoverStyle
 
 const FadeInSection = ({ children, delay = 0, duration = 600, style: customStyle, useNativeDriver = true }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(25)).current;
+  const translateX = useRef(new Animated.Value(-50)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -297,7 +335,7 @@ const FadeInSection = ({ children, delay = 0, duration = 600, style: customStyle
         easing: Easing.out(Easing.cubic),
         useNativeDriver: useNativeDriver,
       }),
-      Animated.timing(translateY, {
+      Animated.timing(translateX, {
         toValue: 0,
         duration: duration,
         delay,
@@ -305,14 +343,14 @@ const FadeInSection = ({ children, delay = 0, duration = 600, style: customStyle
         useNativeDriver: useNativeDriver,
       }),
     ]).start();
-  }, [fadeAnim, translateY, delay, duration, useNativeDriver]);
+  }, [fadeAnim, translateX, delay, duration, useNativeDriver]);
 
   return (
     <Animated.View
       style={[
         {
           opacity: fadeAnim,
-          transform: [{ translateY }],
+          transform: [{ translateX }],
           width: "100%",
           alignItems: "center",
         },
@@ -649,96 +687,186 @@ const PlansSection = React.forwardRef(({ onSelectPlan, isMobile }, ref) => {
 });
 
 const TestimonialsSection = React.forwardRef((props, ref) => {
+  const [currentGroup, setCurrentGroup] = useState(0);
+  const { width } = useWindowDimensions();
+  const isMobile = width < 700;
+  const testimonialsPerGroup = isMobile ? 1 : 3;
+  const totalGroups = Math.ceil(TESTIMONIALS.length / testimonialsPerGroup);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentGroup((prevGroup) => (prevGroup + 1) % totalGroups);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [totalGroups]);
+
+  const getCurrentTestimonials = () => {
+    const startIndex = currentGroup * testimonialsPerGroup;
+    return TESTIMONIALS.slice(startIndex, startIndex + testimonialsPerGroup);
+  };
+
   return (
     <View ref={ref} style={[enhancedStyles.section, { backgroundColor: theme.mutedPrimary }]}>
       <View style={enhancedStyles.sectionContent}>
         <FadeInSection delay={0} useNativeDriver={Platform.OS !== 'web'} style={{marginBottom: spacing.medium, width: '100%', alignItems: 'center'}}>
-            <Text style={[enhancedStyles.sectionTitle, { color: theme.secondaryColor }]}>
-              Opiniones de Clientes Satisfechos
-            </Text>
+          <Text style={[enhancedStyles.sectionTitle, { color: theme.secondaryColor }]}>
+            Opiniones de Clientes Satisfechos
+          </Text>
         </FadeInSection>
-        <FlatList
-          data={TESTIMONIALS}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={enhancedStyles.testimonialsListContainer}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => (
-            <FadeInSection
-              delay={index * 150}
-              useNativeDriver={Platform.OS !== 'web'}
-              style={enhancedStyles.testimonialCardWrapper}
-            >
-              <HoverCard style={enhancedStyles.testimonialCard}>
-                <MaterialCommunityIcons
-                  name="format-quote-open"
-                  size={40}
-                  color={theme.primaryColor}
-                  style={enhancedStyles.quoteIcon}
-                />
-                <Text style={[ enhancedStyles.testimonialText, typography.body, { fontStyle: 'italic', fontSize: 16, textAlign: 'left' } ]}>
-                  {item.quote}
-                </Text>
-                <View style={enhancedStyles.testimonialAuthorContainer}>
+        <View style={enhancedStyles.testimonialsContainer}>
+          <Animated.View style={[
+            enhancedStyles.testimonialsGroupContainer,
+            isMobile && enhancedStyles.testimonialsGroupContainerMobile
+          ]}>
+            {getCurrentTestimonials().map((item, index) => (
+              <FadeInSection
+                key={item.id}
+                delay={index * 200}
+                duration={500}
+                useNativeDriver={Platform.OS !== 'web'}
+                style={[
+                  enhancedStyles.testimonialCardWrapper,
+                  isMobile && enhancedStyles.testimonialCardWrapperMobile
+                ]}
+              >
+                <HoverCard style={enhancedStyles.testimonialCard}>
+                  <MaterialCommunityIcons
+                    name="format-quote-open"
+                    size={40}
+                    color={theme.primaryColor}
+                    style={enhancedStyles.quoteIcon}
+                  />
+                  <Text style={[enhancedStyles.testimonialText, typography.body, { fontStyle: 'italic', fontSize: 16, textAlign: 'left' }]}>
+                    {item.quote}
+                  </Text>
+                  <View style={enhancedStyles.testimonialAuthorContainer}>
                     <Text style={enhancedStyles.testimonialAuthor}>{item.author}</Text>
                     <Text style={enhancedStyles.testimonialPet}>{item.pet}</Text>
-                </View>
-              </HoverCard>
-            </FadeInSection>
-          )}
-        />
+                  </View>
+                </HoverCard>
+              </FadeInSection>
+            ))}
+          </Animated.View>
+          <View style={enhancedStyles.paginationContainer}>
+            {Array.from({ length: totalGroups }).map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  enhancedStyles.paginationDot,
+                  index === currentGroup && enhancedStyles.paginationDotActive
+                ]}
+              />
+            ))}
+          </View>
+        </View>
       </View>
     </View>
   );
 });
 
 const CommunitySection = React.forwardRef((props, ref) => {
+  const router = useRouter();
+  const [currentGroup, setCurrentGroup] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const { width } = useWindowDimensions();
-  const numColumns = width < 600 ? 2 : width < 1100 ? 3 : 4;
-  const galleryItemWidth = `${100 / numColumns}%`;
-
+  const isMobile = width < 700;
+  const imagesPerGroup = isMobile ? 1 : 3;
+  
   const galleryData = [
-    images.GALLERY_1, images.GALLERY_2, images.GALLERY_3, images.GALLERY_4,
+    images.GALLERY_1,
+    images.GALLERY_2,
+    images.GALLERY_3,
+    images.GALLERY_4,
+    images.GALLERY_5,
+    images.GALLERY_6,
+    images.GALLERY_7,
+    images.GALLERY_8,
+    images.GALLERY_9,
   ];
+  
+  const totalGroups = Math.ceil(galleryData.length / imagesPerGroup);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentGroup((prevGroup) => (prevGroup + 1) % totalGroups);
+        setIsTransitioning(false);
+      }, 500);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [totalGroups]);
+
+  const getCurrentImages = () => {
+    const startIndex = currentGroup * imagesPerGroup;
+    return galleryData.slice(startIndex, startIndex + imagesPerGroup);
+  };
+
+  const handleJoinCommunity = () => {
+    router.push('/presupuesto');
+  };
 
   return (
     <View ref={ref} style={[enhancedStyles.section, { backgroundColor: theme.offWhite }]}>
       <View style={enhancedStyles.sectionContent}>
         <FadeInSection delay={0} useNativeDriver={Platform.OS !== 'web'} style={{marginBottom: spacing.medium, width: '100%', alignItems: 'center'}}>
-            <Text style={enhancedStyles.sectionTitle}>Nuestra Comunidad</Text>
-            <Text style={[enhancedStyles.sectionText, typography.body, { marginBottom: spacing.large }]}>
-              Únete a miles de dueños que confían en nosotros. Comparte fotos de tus mascotas felices y protegidas.
-            </Text>
+          <Text style={enhancedStyles.sectionTitle}>Nuestra Comunidad</Text>
+          <Text style={[enhancedStyles.sectionText, typography.body, { marginBottom: spacing.large }]}>
+            Únete a miles de dueños que confían en nosotros. Comparte fotos de tus mascotas felices y protegidas.
+          </Text>
         </FadeInSection>
-        <View style={enhancedStyles.galleryGrid}>
-          {galleryData.map((imgSrc, index) => (
-            <FadeInSection
-              key={index}
-              delay={100 + index * 100}
-              useNativeDriver={Platform.OS !== 'web'}
-              style={[enhancedStyles.galleryItemWrapper, { width: galleryItemWidth }]}
-            >
-              <HoverCard style={enhancedStyles.galleryItem} hoverEffect={false}>
+        <View style={enhancedStyles.galleryContainer}>
+          <Animated.View style={[
+            enhancedStyles.galleryGroupContainer,
+            isMobile && enhancedStyles.galleryGroupContainerMobile,
+            {
+              opacity: isTransitioning ? 0 : 1,
+              transform: [{ scale: isTransitioning ? 0.95 : 1 }],
+            }
+          ]}>
+            {getCurrentImages().map((imgSrc, index) => (
+              <View
+                key={index}
+                style={[
+                  enhancedStyles.galleryItemWrapper,
+                  isMobile && enhancedStyles.galleryItemWrapperMobile
+                ]}
+              >
+                <HoverCard style={enhancedStyles.galleryItem} hoverEffect={false}>
                   <Image
                     source={imgSrc}
                     style={enhancedStyles.galleryImage}
                     resizeMode="cover"
                   />
-              </HoverCard>
-            </FadeInSection>
-          ))}
+                </HoverCard>
+              </View>
+            ))}
+          </Animated.View>
+          <View style={enhancedStyles.paginationContainer}>
+            {Array.from({ length: totalGroups }).map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  enhancedStyles.paginationDot,
+                  index === currentGroup && enhancedStyles.paginationDotActive
+                ]}
+              />
+            ))}
+          </View>
         </View>
-        <FadeInSection delay={100 + galleryData.length * 100} useNativeDriver={Platform.OS !== 'web'} style={{marginTop: spacing.large, alignItems: 'center'}}>
-            <HoverButton
-              style={enhancedStyles.communityButton}
-              hoverStyle={enhancedStyles.buttonHoverPrimaryDarker}
-              onPress={() => console.log("Únete a nuestra comunidad presionado")} // Considera navegar a una página de comunidad o redes sociales
-            >
-              <Text style={enhancedStyles.communityButtonText}>
-                ¡Únete a la Comunidad!
-              </Text>
-              <MaterialIcons name="group-add" size={20} color={theme.white} style={{ marginLeft: 8 }} />
-            </HoverButton>
+        <FadeInSection delay={100} useNativeDriver={Platform.OS !== 'web'} style={{marginTop: spacing.large, alignItems: 'center'}}>
+          <HoverButton
+            style={enhancedStyles.communityButton}
+            hoverStyle={enhancedStyles.buttonHoverPrimaryDarker}
+            onPress={handleJoinCommunity}
+          >
+            <Text style={enhancedStyles.communityButtonText}>
+              ¡Únete a la Comunidad!
+            </Text>
+            <MaterialIcons name="group-add" size={20} color={theme.white} style={{ marginLeft: 8 }} />
+          </HoverButton>
         </FadeInSection>
       </View>
     </View>
@@ -1130,23 +1258,43 @@ const enhancedStyles = StyleSheet.create({
   },
 
   // --- Sección Testimonios ---
-  testimonialsListContainer: {
-    paddingVertical: spacing.medium,
-    paddingHorizontal: Platform.OS === 'web' ? 0 : spacing.medium, // Padding en móvil
-    alignItems: "stretch", // Asegurar que las tarjetas se estiren si tienen flex:1
+  testimonialsContainer: {
+    width: '100%',
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  testimonialsGroupContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    gap: spacing.large,
+    paddingHorizontal: spacing.large,
+  },
+  testimonialsGroupContainerMobile: {
+    flexDirection: 'column',
+    gap: spacing.medium,
+    paddingHorizontal: spacing.medium,
   },
   testimonialCardWrapper: {
-      width: Platform.OS === "web" ? 380 : 320, // Ancho de tarjetas de testimonio
-      marginHorizontal: spacing.medium, // Espacio entre tarjetas
-      alignItems: 'stretch',
-      alignSelf: 'stretch', // Importante para que FlatList horizontal funcione bien con flex:1
+    width: Platform.OS === 'web' ? '30%' : '90%',
+    maxWidth: 380,
+    alignItems: 'stretch',
+    height: 320,
+  },
+  testimonialCardWrapperMobile: {
+    width: '100%',
+    maxWidth: '100%',
+    height: 320, // Aumentado para dar más espacio
   },
   testimonialCard: {
     backgroundColor: theme.white,
     padding: spacing.large,
-    flex: 1, // Para que todas las tarjetas tengan la misma altura en FlatList horizontal
-    justifyContent: "space-between", // Distribuir contenido
-    minHeight: 240, // Altura mínima
+    flex: 1,
+    justifyContent: "space-between",
+    borderRadius: theme.borderRadius,
+    ...theme.shadow,
   },
   quoteIcon: {
     marginBottom: spacing.medium,
@@ -1154,54 +1302,102 @@ const enhancedStyles = StyleSheet.create({
     color: theme.primaryColor,
   },
   testimonialText: {
-    marginBottom: spacing.medium,
-    flexGrow: 1, // Permitir que el texto de la cita ocupe el espacio disponible
-    color: theme.dark,
+    flex: 1,
+    marginVertical: spacing.medium,
     lineHeight: 24,
+    fontSize: Platform.OS === 'web' ? 16 : 15, // Texto ligeramente más pequeño en móvil
   },
   testimonialAuthorContainer: {
-      marginTop: spacing.small,
-      paddingTop: spacing.medium,
-      borderTopWidth: 1,
-      borderTopColor: theme.greyLight, // Separador sutil
+    marginTop: 'auto',
+    paddingTop: spacing.medium,
+    borderTopWidth: 1,
+    borderTopColor: theme.greyLight,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   testimonialAuthor: {
     ...typography.body,
     fontWeight: "bold",
     color: theme.secondaryColor,
     textAlign: 'left',
+    fontSize: Platform.OS === 'web' ? 16 : 14,
+    marginRight: spacing.small,
   },
   testimonialPet: {
     ...typography.caption,
-    fontSize: 14,
+    fontSize: Platform.OS === 'web' ? 14 : 13,
     color: theme.greyMedium,
     textAlign: 'left',
   },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing.large,
+    gap: spacing.small,
+    paddingVertical: spacing.small,
+  },
+  paginationDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: theme.greyLight,
+    opacity: 0.5,
+    margin: 2,
+  },
+  paginationDotActive: {
+    backgroundColor: theme.primaryColor,
+    opacity: 1,
+    transform: [{ scale: 1.2 }],
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
 
   // --- Sección Comunidad (Galería) ---
-  galleryGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    marginTop: spacing.medium,
+  galleryContainer: {
     width: '100%',
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  galleryGroupContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    gap: spacing.large,
+    paddingHorizontal: spacing.large,
+    transition: 'all 0.5s ease-in-out',
+  },
+  galleryGroupContainerMobile: {
+    flexDirection: 'column',
+    gap: spacing.medium,
+    paddingHorizontal: spacing.medium,
   },
   galleryItemWrapper: {
-      padding: spacing.small / 2, // Pequeño espacio alrededor de cada item
-      alignItems: 'stretch',
+    width: Platform.OS === 'web' ? '30%' : '90%',
+    maxWidth: 380,
+    height: 240,
+    alignItems: 'stretch',
+  },
+  galleryItemWrapperMobile: {
+    width: '100%',
+    maxWidth: '100%',
+    height: 200,
   },
   galleryItem: {
-    height: Platform.OS === "web" ? 240 : 200, // Altura de las imágenes de la galería
-    borderRadius: borderRadius.medium,
-    overflow: "hidden", // Para que la imagen no se salga de los bordes redondeados
-    backgroundColor: theme.greyLight, // Fondo mientras carga la imagen
-    width: '100%', // Ocupar todo el ancho del wrapper
-    flex: 1, // Ocupar todo el espacio del wrapper
+    width: '100%',
+    height: '100%',
+    borderRadius: theme.borderRadius,
+    overflow: 'hidden',
+    ...theme.shadow,
   },
   galleryImage: {
-    width: "100%",
-    height: "100%",
-    ...(Platform.OS === 'web' && { transition: 'transform 0.3s ease' }), // Efecto sutil en web
+    width: '100%',
+    height: '100%',
   },
   communityButton: {
     backgroundColor: theme.primaryColor,

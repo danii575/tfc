@@ -16,12 +16,11 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
-//holaffffff 
+import Header from '../components/Header';
 
 import { getAuth } from 'firebase/auth';
 import { db, app as firebaseApp } from '../firebase/firebaseConfig';
 import { doc, setDoc } from 'firebase/firestore';
-//hola 
 
 import { useAuth } from './_layout';
 
@@ -72,6 +71,7 @@ export default function RegistroScreen() {
   
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
 
   // Pre-rellenar campos si vienen del presupuesto
   useEffect(() => {
@@ -257,10 +257,26 @@ export default function RegistroScreen() {
     setErrors(prev => ({ ...prev, [field]: '' }));
   };
 
+  const handleFocus = (field) => {
+    setFocusedField(field);
+  };
+
+  const handleBlur = () => {
+    setFocusedField(null);
+  };
+
   const isFromPresupuesto = params.fromPresupuesto === 'true';
+
+  const headerProps = {
+    title: "Registro",
+    onNavigateToHome: () => router.replace('/'),
+    onNavigateToLogin: () => router.push('/login'),
+    onNavigateToSignup: null,
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.backgroundLight }}>
+      <Header {...headerProps} />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
@@ -274,60 +290,162 @@ export default function RegistroScreen() {
                 <Text style={styles.formSubtitle}>Crea una cuenta para acceder a todos nuestros servicios.</Text>
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Nombre</Text>
-                <View style={[styles.inputContainerView, errors.nombre ? styles.inputErrorBorder : null, isFromPresupuesto ? styles.disabledInputContainer : null]}>
-                  <MaterialIcons name="person" size={20} color={theme.textSecondary} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.input, isFromPresupuesto ? styles.disabledInput : null]}
-                    placeholder="Nombre"
-                    value={formData.nombre}
-                    onChangeText={(text) => handleInputChange('nombre', text)}
-                    autoCapitalize="words"
-                    textContentType="givenName"
-                    editable={!isFromPresupuesto}
-                  />
-                </View>
-                {errors.nombre ? <Text style={styles.errorTextFeedback}>{errors.nombre}</Text> : null}
-              </View>
+              <View style={styles.inputsGrid}>
+                <View style={styles.inputRow}>
+                  <View style={[styles.inputGroup, styles.halfWidth]}>
+                    <Text style={styles.inputLabel}>Nombre</Text>
+                    <View style={[
+                      styles.inputContainerView, 
+                      errors.nombre ? styles.inputErrorBorder : null, 
+                      isFromPresupuesto ? styles.disabledInputContainer : null,
+                      focusedField === 'nombre' ? styles.inputContainerViewFocused : null
+                    ]}>
+                      <MaterialIcons name="person" size={20} color={theme.textSecondary} style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.input, isFromPresupuesto ? styles.disabledInput : null]}
+                        placeholder="Nombre"
+                        value={formData.nombre}
+                        onChangeText={(text) => handleInputChange('nombre', text)}
+                        autoCapitalize="words"
+                        textContentType="givenName"
+                        editable={!isFromPresupuesto}
+                        onFocus={() => handleFocus('nombre')}
+                        onBlur={handleBlur}
+                      />
+                    </View>
+                    {errors.nombre ? <Text style={styles.errorTextFeedback}>{errors.nombre}</Text> : null}
+                  </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Primer Apellido</Text>
-                <View style={[styles.inputContainerView, errors.primerApellido ? styles.inputErrorBorder : null, isFromPresupuesto ? styles.disabledInputContainer : null]}>
-                  <MaterialIcons name="person" size={20} color={theme.textSecondary} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.input, isFromPresupuesto ? styles.disabledInput : null]}
-                    placeholder="Primer Apellido"
-                    value={formData.primerApellido}
-                    onChangeText={(text) => handleInputChange('primerApellido', text)}
-                    autoCapitalize="words"
-                    textContentType="familyName"
-                    editable={!isFromPresupuesto}
-                  />
+                  <View style={[styles.inputGroup, styles.halfWidth]}>
+                    <Text style={styles.inputLabel}>Primer Apellido</Text>
+                    <View style={[
+                      styles.inputContainerView, 
+                      errors.primerApellido ? styles.inputErrorBorder : null, 
+                      isFromPresupuesto ? styles.disabledInputContainer : null,
+                      focusedField === 'primerApellido' ? styles.inputContainerViewFocused : null
+                    ]}>
+                      <MaterialIcons name="person" size={20} color={theme.textSecondary} style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.input, isFromPresupuesto ? styles.disabledInput : null]}
+                        placeholder="Primer Apellido"
+                        value={formData.primerApellido}
+                        onChangeText={(text) => handleInputChange('primerApellido', text)}
+                        autoCapitalize="words"
+                        textContentType="familyName"
+                        editable={!isFromPresupuesto}
+                        onFocus={() => handleFocus('primerApellido')}
+                        onBlur={handleBlur}
+                      />
+                    </View>
+                    {errors.primerApellido ? <Text style={styles.errorTextFeedback}>{errors.primerApellido}</Text> : null}
+                  </View>
                 </View>
-                {errors.primerApellido ? <Text style={styles.errorTextFeedback}>{errors.primerApellido}</Text> : null}
-              </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Segundo Apellido</Text>
-                <View style={[styles.inputContainerView, errors.segundoApellido ? styles.inputErrorBorder : null, isFromPresupuesto ? styles.disabledInputContainer : null]}>
-                  <MaterialIcons name="person" size={20} color={theme.textSecondary} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.input, isFromPresupuesto ? styles.disabledInput : null]}
-                    placeholder="Segundo Apellido"
-                    value={formData.segundoApellido}
-                    onChangeText={(text) => handleInputChange('segundoApellido', text)}
-                    autoCapitalize="words"
-                    textContentType="familyName"
-                    editable={!isFromPresupuesto}
-                  />
+                <View style={styles.inputRow}>
+                  <View style={[styles.inputGroup, styles.halfWidth]}>
+                    <Text style={styles.inputLabel}>Segundo Apellido</Text>
+                    <View style={[
+                      styles.inputContainerView, 
+                      errors.segundoApellido ? styles.inputErrorBorder : null, 
+                      isFromPresupuesto ? styles.disabledInputContainer : null,
+                      focusedField === 'segundoApellido' ? styles.inputContainerViewFocused : null
+                    ]}>
+                      <MaterialIcons name="person" size={20} color={theme.textSecondary} style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.input, isFromPresupuesto ? styles.disabledInput : null]}
+                        placeholder="Segundo Apellido"
+                        value={formData.segundoApellido}
+                        onChangeText={(text) => handleInputChange('segundoApellido', text)}
+                        autoCapitalize="words"
+                        textContentType="familyName"
+                        editable={!isFromPresupuesto}
+                        onFocus={() => handleFocus('segundoApellido')}
+                        onBlur={handleBlur}
+                      />
+                    </View>
+                    {errors.segundoApellido ? <Text style={styles.errorTextFeedback}>{errors.segundoApellido}</Text> : null}
+                  </View>
+
+                  <View style={[styles.inputGroup, styles.halfWidth]}>
+                    <Text style={styles.inputLabel}>Teléfono</Text>
+                    <View style={[
+                      styles.inputContainerView, 
+                      errors.telefono ? styles.inputErrorBorder : null, 
+                      isFromPresupuesto ? styles.disabledInputContainer : null,
+                      focusedField === 'telefono' ? styles.inputContainerViewFocused : null
+                    ]}>
+                      <MaterialIcons name="phone" size={20} color={theme.textSecondary} style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.input, isFromPresupuesto ? styles.disabledInput : null]}
+                        placeholder="Teléfono"
+                        value={formData.telefono}
+                        onChangeText={(text) => handleInputChange('telefono', text)}
+                        keyboardType="phone-pad"
+                        textContentType="telephoneNumber"
+                        editable={!isFromPresupuesto}
+                        onFocus={() => handleFocus('telefono')}
+                        onBlur={handleBlur}
+                      />
+                    </View>
+                    {errors.telefono ? <Text style={styles.errorTextFeedback}>{errors.telefono}</Text> : null}
+                  </View>
                 </View>
-                {errors.segundoApellido ? <Text style={styles.errorTextFeedback}>{errors.segundoApellido}</Text> : null}
+
+                <View style={styles.inputRow}>
+                  <View style={[styles.inputGroup, styles.halfWidth]}>
+                    <Text style={styles.inputLabel}>Contraseña</Text>
+                    <View style={[
+                      styles.inputContainerView, 
+                      errors.password ? styles.inputErrorBorder : null,
+                      focusedField === 'password' ? styles.inputContainerViewFocused : null
+                    ]}>
+                      <MaterialIcons name="lock" size={20} color={theme.textSecondary} style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Contraseña"
+                        value={formData.password}
+                        onChangeText={(text) => handleInputChange('password', text)}
+                        secureTextEntry
+                        textContentType="newPassword"
+                        onFocus={() => handleFocus('password')}
+                        onBlur={handleBlur}
+                      />
+                    </View>
+                    {errors.password ? <Text style={styles.errorTextFeedback}>{errors.password}</Text> : null}
+                  </View>
+
+                  <View style={[styles.inputGroup, styles.halfWidth]}>
+                    <Text style={styles.inputLabel}>Confirmar Contraseña</Text>
+                    <View style={[
+                      styles.inputContainerView, 
+                      errors.confirmPassword ? styles.inputErrorBorder : null,
+                      focusedField === 'confirmPassword' ? styles.inputContainerViewFocused : null
+                    ]}>
+                      <MaterialIcons name="lock" size={20} color={theme.textSecondary} style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Confirmar contraseña"
+                        value={formData.confirmPassword}
+                        onChangeText={(text) => handleInputChange('confirmPassword', text)}
+                        secureTextEntry
+                        textContentType="newPassword"
+                        onFocus={() => handleFocus('confirmPassword')}
+                        onBlur={handleBlur}
+                      />
+                    </View>
+                    {errors.confirmPassword ? <Text style={styles.errorTextFeedback}>{errors.confirmPassword}</Text> : null}
+                  </View>
+                </View>
               </View>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Email</Text>
-                <View style={[styles.inputContainerView, errors.email ? styles.inputErrorBorder : null, isFromPresupuesto ? styles.disabledInputContainer : null]}>
+                <View style={[
+                  styles.inputContainerView, 
+                  errors.email ? styles.inputErrorBorder : null, 
+                  isFromPresupuesto ? styles.disabledInputContainer : null,
+                  focusedField === 'email' ? styles.inputContainerViewFocused : null
+                ]}>
                   <MaterialIcons name="email" size={20} color={theme.textSecondary} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, isFromPresupuesto ? styles.disabledInput : null]}
@@ -338,58 +456,11 @@ export default function RegistroScreen() {
                     autoCapitalize="none"
                     textContentType="emailAddress"
                     editable={!isFromPresupuesto}
+                    onFocus={() => handleFocus('email')}
+                    onBlur={handleBlur}
                   />
                 </View>
                 {errors.email ? <Text style={styles.errorTextFeedback}>{errors.email}</Text> : null}
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Contraseña</Text>
-                <View style={[styles.inputContainerView, errors.password ? styles.inputErrorBorder : null]}>
-                  <MaterialIcons name="lock" size={20} color={theme.textSecondary} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Contraseña"
-                    value={formData.password}
-                    onChangeText={(text) => handleInputChange('password', text)}
-                    secureTextEntry
-                    textContentType="newPassword"
-                  />
-                </View>
-                {errors.password ? <Text style={styles.errorTextFeedback}>{errors.password}</Text> : null}
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Confirmar Contraseña</Text>
-                <View style={[styles.inputContainerView, errors.confirmPassword ? styles.inputErrorBorder : null]}>
-                  <MaterialIcons name="lock" size={20} color={theme.textSecondary} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Confirmar contraseña"
-                    value={formData.confirmPassword}
-                    onChangeText={(text) => handleInputChange('confirmPassword', text)}
-                    secureTextEntry
-                    textContentType="newPassword"
-                  />
-                </View>
-                {errors.confirmPassword ? <Text style={styles.errorTextFeedback}>{errors.confirmPassword}</Text> : null}
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Teléfono</Text>
-                <View style={[styles.inputContainerView, errors.telefono ? styles.inputErrorBorder : null, isFromPresupuesto ? styles.disabledInputContainer : null]}>
-                  <MaterialIcons name="phone" size={20} color={theme.textSecondary} style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.input, isFromPresupuesto ? styles.disabledInput : null]}
-                    placeholder="Teléfono"
-                    value={formData.telefono}
-                    onChangeText={(text) => handleInputChange('telefono', text)}
-                    keyboardType="phone-pad"
-                    textContentType="telephoneNumber"
-                    editable={!isFromPresupuesto}
-                  />
-                </View>
-                {errors.telefono ? <Text style={styles.errorTextFeedback}>{errors.telefono}</Text> : null}
               </View>
 
               <View style={styles.termsContainer}>
@@ -441,15 +512,57 @@ export default function RegistroScreen() {
 const styles = StyleSheet.create({
   gradientContainer: { flex: 1 },
   scrollContentContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.large },
-  formWrapper: { width: '100%', maxWidth: Platform.OS === 'web' ? 420 : 380, backgroundColor: theme.white, borderRadius: theme.borderRadius, padding: Platform.OS === 'web' ? spacing.extraLarge : spacing.large, ...theme.shadow },
+  formWrapper: { 
+    width: '100%', 
+    maxWidth: Platform.OS === 'web' ? 800 : 380, 
+    backgroundColor: theme.white, 
+    borderRadius: theme.borderRadius, 
+    padding: Platform.OS === 'web' ? spacing.extraLarge : spacing.large, 
+    ...theme.shadow 
+  },
   pageTitle: { fontSize: 24, fontWeight: 'bold', color: theme.primaryColor, marginBottom: spacing.medium, textAlign: 'center' },
   formTitle: { ...typography.heading2, color: theme.secondaryColor, marginBottom: spacing.small, textAlign: 'center' },
   formSubtitle: { ...typography.body, color: theme.textSecondary, textAlign: 'center', marginBottom: spacing.large + spacing.medium, fontSize: 15 },
-  inputGroup: { marginBottom: spacing.medium },
+  inputsGrid: {
+    width: '100%',
+    marginBottom: spacing.medium,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.medium,
+    marginBottom: spacing.medium,
+  },
+  inputGroup: {
+    marginBottom: spacing.medium,
+  },
+  halfWidth: {
+    flex: 1,
+  },
   inputLabel: { fontSize: 14, color: theme.secondaryColor, fontWeight: '500', marginBottom: spacing.small / 2 },
-  inputContainerView: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.offWhite, borderRadius: theme.borderRadius / 1.5, borderWidth: 1, borderColor: theme.greyLight, paddingHorizontal: spacing.medium },
+  inputContainerView: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: theme.offWhite, 
+    borderRadius: theme.borderRadius / 1.5, 
+    borderWidth: 1, 
+    borderColor: theme.greyLight, 
+    paddingHorizontal: spacing.medium,
+    outlineStyle: 'none'
+  },
+  inputContainerViewFocused: {
+    borderColor: theme.primaryColor,
+    borderWidth: 2,
+    outlineStyle: 'none'
+  },
   inputIcon: { marginRight: spacing.medium },
-  input: { flex: 1, paddingVertical: Platform.OS === 'ios' ? spacing.medium : spacing.medium - 2, fontSize: 16, color: theme.textPrimary },
+  input: { 
+    flex: 1, 
+    paddingVertical: Platform.OS === 'ios' ? spacing.medium : spacing.medium - 2, 
+    fontSize: 16, 
+    color: theme.textPrimary,
+    outlineStyle: 'none'
+  },
   inputErrorBorder: { borderColor: theme.errorRed, borderWidth: 1.5 },
   errorTextFeedback: { color: theme.errorRed, fontSize: 13, marginTop: spacing.small / 2, marginLeft: spacing.small },
   disabledInputContainer: { backgroundColor: '#f5f5f5', borderColor: '#ddd', opacity: 0.8 },
