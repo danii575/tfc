@@ -2,7 +2,13 @@ export const sendPresupuestoEmail = async (userData, planData) => {
   try {
     console.log('Iniciando envío de presupuesto:', { userData, planData });
     
-    const response = await fetch('https://tfg-lime.vercel.app/api/send', {
+    // Determinar la URL base según el entorno
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://tfg-lime.vercel.app';
+    const apiUrl = `${baseUrl}/api/send`;
+    
+    console.log('Enviando petición a:', apiUrl);
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -23,6 +29,12 @@ export const sendPresupuestoEmail = async (userData, planData) => {
       }
       if (response.status === 429) {
         throw new Error('Demasiados intentos de envío. Por favor, espera unos minutos antes de intentarlo de nuevo.');
+      }
+      if (response.status === 500) {
+        if (data.error?.includes('dominio')) {
+          throw new Error('Error de configuración del servicio de correo. Por favor, contacta con soporte.');
+        }
+        throw new Error(data.error || 'Error interno del servidor al enviar el correo');
       }
       throw new Error(data.error || 'Error al enviar el correo');
     }
