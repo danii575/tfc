@@ -675,12 +675,26 @@ const PlansSection = React.forwardRef(({ onSelectPlan, isMobile }, ref) => {
       <View style={enhancedStyles.sectionContent}>
           <FadeInSection delay={0} useNativeDriver={Platform.OS !== 'web'} style={{marginBottom: spacing.large, width: '100%', alignItems: 'center'}}>
             <Text style={enhancedStyles.sectionTitle}>Nuestros Planes</Text>
-        </FadeInSection>
-        <View style={[enhancedStyles.plansCardsContainer, isMobile && { flexDirection: 'column', alignItems: 'center' }]}> 
-            {PLANS.map((plan, index) => (
-              <PlanCard key={plan.id} plan={plan} onSelect={() => onSelectPlan(plan)} index={index} isMobile={isMobile} />
-            ))}
-        </View>
+          </FadeInSection>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+            <MaterialCommunityIcons
+              name="dog"
+              size={200}
+              color={theme.primaryColor}
+              style={{ marginRight: 20 }}
+            />
+            <View style={[enhancedStyles.plansCardsContainer, isMobile && { flexDirection: 'column', alignItems: 'center' }]}> 
+              {PLANS.map((plan, index) => (
+                <PlanCard key={plan.id} plan={plan} onSelect={() => onSelectPlan(plan)} index={index} isMobile={isMobile} />
+              ))}
+            </View>
+            <MaterialCommunityIcons
+              name="cat"
+              size={200}
+              color={theme.primaryColor}
+              style={{ marginLeft: 20 }}
+            />
+          </View>
       </View>
     </View>
   );

@@ -622,6 +622,9 @@ export default function PresupuestoPage() {
   const [mezcla1, setMezcla1] = useState('');
   const [mezcla2, setMezcla2] = useState('');
 
+  // Controlar el historial de pasos para evitar bucles
+  const [lastStepBeforeOwner, setLastStepBeforeOwner] = useState(null);
+
   useEffect(() => {
     if (currentUser) { 
       console.log("[PresupuestoPage] Usuario logueado detectado, pre-rellenando datos del dueño:", authUserData, currentUser);
@@ -718,6 +721,21 @@ export default function PresupuestoPage() {
     scrollToTop();
   };
   
+  const handleAddAnotherAnimal = () => {
+    // Añadir una nueva mascota vacía y pasar a seleccionar tipo de animal para la nueva mascota
+    setAnimals(prev => [...prev, { ...initialAnimalState }]);
+    setCurrentAnimalIndex(animals.length); // Nuevo índice
+    setCurrentStep(0); // Volver a seleccionar tipo de animal
+    resetAllErrorStates();
+    scrollToTop();
+  };
+
+  const handleContinueToOwner = () => {
+    // Pasar a datos del usuario
+    setCurrentStep(3);
+    scrollToTop();
+  };
+
   const nextStepAction = () => {
     if (currentStep === 0) {
       if (!currentAnimalData.tipo) {
@@ -729,9 +747,9 @@ export default function PresupuestoPage() {
       if (!validateAnimalFields(currentAnimalIndex, true)) {
         return;
       }
-      setCurrentStep('addOrContinue');
+      setCurrentStep(2);
     } else if (currentStep === 2) {
-      setCurrentStep(3);
+      setCurrentStep('addOrContinue');
     } else if (currentStep === 3) {
       if (!validateOwnerFields(true)) {
         return;
@@ -744,7 +762,8 @@ export default function PresupuestoPage() {
   const prevStepAction = () => {
     if (currentStep === 1) setCurrentStep(0);
     else if (currentStep === 2) setCurrentStep(1);
-    else if (currentStep === 3) setCurrentStep(2);
+    else if (currentStep === 'addOrContinue') setCurrentStep(2);
+    else if (currentStep === 3) setCurrentStep('addOrContinue');
     else if (currentStep === 4) setCurrentStep(3);
     else if (currentStep === 0) {
       if (currentAnimalIndex > 0) {
@@ -754,22 +773,6 @@ export default function PresupuestoPage() {
         router.push('/');
       }
     }
-    scrollToTop();
-  };
-
-  const addAnotherAnimalAction = () => {
-    if (!validateAnimalFields(currentAnimalIndex, true)) { scrollToTop(); return; }
-    resetAllErrorStates(); 
-    setAnimals(prev => [...prev, { ...initialAnimalState }]);
-    setCurrentAnimalIndex(prev => prev + 1);
-    setCurrentStep(0);
-    scrollToTop();
-  };
-
-  const proceedToOwnerAction = () => {
-    if (!validateAnimalFields(currentAnimalIndex, true)) { scrollToTop(); return; }
-    resetAllErrorStates();
-    setCurrentStep(1);
     scrollToTop();
   };
 
@@ -1098,7 +1101,7 @@ export default function PresupuestoPage() {
         return (
         <View key={index} style={styles.reviewDetailItem}> 
           {item.label && <Text style={styles.reviewLabel}>{item.label}:</Text>}
-            <Text style={styles.reviewTextValue}>{value}</Text>
+            <Text style={item.label === 'Email' ? styles.reviewEmailValue : styles.reviewTextValue}>{value}</Text>
         </View> 
         );
       }) : <Text style={styles.reviewNoDataText}>No hay datos para esta sección.</Text>}
@@ -1162,14 +1165,14 @@ export default function PresupuestoPage() {
                 <FormButton 
                   title="Siguiente" 
                   onPress={nextStepAction} 
-                  style={mobileStyles.navigationButton} 
+                  style={[mobileStyles.navigationButton, { marginBottom: spacing.small }]} 
                   iconName="arrow-forward" 
                 />
                 <FormButton 
                   title="Atrás" 
                   onPress={prevStepAction} 
                   variant="secondary" 
-                  style={[mobileStyles.navigationButton, mobileStyles.backButtonFullWidth]} 
+                  style={mobileStyles.navigationButton} 
                   iconName="arrow-back" 
                 />
               </>
@@ -1210,18 +1213,15 @@ export default function PresupuestoPage() {
           <View style={mobileStyles.addOrContinueButtons}>
             <FormButton
               title="Añadir otra mascota"
-              onPress={addAnotherAnimalAction}
+              onPress={handleAddAnotherAnimal}
               iconName="add"
-              style={mobileStyles.addOrContinueButton}
+              style={{ minWidth: 180, marginRight: 8 }}
             />
             <FormButton
               title="Continuar"
-              onPress={() => {
-                if (!validateAnimalFields(currentAnimalIndex, true)) return;
-                setCurrentStep(2);
-              }}
+              onPress={handleContinueToOwner}
               iconName="arrow-forward"
-              style={mobileStyles.addOrContinueButton}
+              style={{ minWidth: 180, marginLeft: 8 }}
             />
           </View>
         </View>
@@ -1233,16 +1233,13 @@ export default function PresupuestoPage() {
           <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16 }}>
             <FormButton
               title="Añadir otra mascota"
-              onPress={addAnotherAnimalAction}
+              onPress={handleAddAnotherAnimal}
               iconName="add"
               style={{ minWidth: 180, marginRight: 8 }}
             />
             <FormButton
               title="Continuar"
-              onPress={() => {
-                if (!validateAnimalFields(currentAnimalIndex, true)) return;
-                setCurrentStep(2);
-              }}
+              onPress={handleContinueToOwner}
               iconName="arrow-forward"
               style={{ minWidth: 180, marginLeft: 8 }}
             />
@@ -1261,8 +1258,8 @@ export default function PresupuestoPage() {
           <View style={[styles.innerContainer, isMobile && { width: '100vw', maxWidth: '100vw', overflowX: 'hidden', padding: 0 }]}>
             {currentStep === 0 && renderAnimalTypeSelection()}
             {currentStep === 1 && renderBasicAnimalForm()}
-            {currentStep === 'addOrContinue' && renderAddOrContinue()}
             {currentStep === 2 && renderAdditionalInfoForm()}
+            {currentStep === 'addOrContinue' && renderAddOrContinue()}
             {currentStep === 3 && renderOwnerForm()}
             {currentStep === 4 && renderReview()}
             {/* Navegación solo para pasos normales (0-3) y no en addOrContinue */}
@@ -1273,14 +1270,14 @@ export default function PresupuestoPage() {
                     <FormButton 
                       title="Siguiente" 
                       onPress={nextStepAction} 
-                      style={mobileStyles.navigationButton} 
+                      style={[mobileStyles.navigationButton, { marginBottom: spacing.small }]} 
                       iconName="arrow-forward" 
                     />
                     <FormButton 
                       title="Atrás" 
                       onPress={prevStepAction} 
                       variant="secondary" 
-                      style={[mobileStyles.navigationButton, mobileStyles.backButtonFullWidth]} 
+                      style={mobileStyles.navigationButton} 
                       iconName="arrow-back" 
                     />
                   </>
@@ -1472,6 +1469,17 @@ const styles = StyleSheet.create({
   },
   reviewLabel: { fontWeight: '700', color: theme.secondaryColor, fontSize: 15, marginRight: spacing.small, flexBasis: '40%', flexShrink:0 }, 
   reviewTextValue: { ...typography.body, fontSize: 15, color: theme.dark, flexShrink: 1, textAlign: 'left', flex: 1 }, 
+  reviewEmailValue: { 
+    ...typography.body, 
+    fontSize: 15, 
+    color: theme.dark, 
+    flexShrink: 1, 
+    textAlign: 'left', 
+    flex: 1, 
+    maxWidth: '100%', 
+    flexWrap: 'wrap', 
+    ...(Platform.OS === 'web' ? { wordBreak: 'break-all' } : {}),
+  },
   reviewNoDataText: { ...typography.body, color: theme.greyMedium, fontStyle: 'italic', textAlign: 'center', paddingVertical: spacing.medium, },
   reviewIconStyle: {marginRight: spacing.small},
   searchBarContainer: {

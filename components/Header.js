@@ -50,7 +50,8 @@ const Header = (props) => {
   const drawerAnim = useRef(new Animated.Value(0)).current;
   const screenWidth = Dimensions.get('window').width;
 
-  const isMobile = Platform.OS !== 'web' || screenWidth < 700;
+  // Cambiamos el breakpoint a 1024px para mejor responsividad
+  const isMobile = Platform.OS !== 'web' || screenWidth < 1024;
 
   const openDrawer = () => {
     setDrawerOpen(true);
