@@ -1,5 +1,10 @@
 const { Resend } = require('resend');
 
+// Verificar que la API key existe
+if (!process.env.RESEND_API_KEY) {
+  console.error('ERROR: RESEND_API_KEY no está definida en las variables de entorno');
+}
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Función para validar email
@@ -9,6 +14,11 @@ const isValidEmail = (email) => {
 };
 
 module.exports = async (req, res) => {
+  console.log('=== INICIO DE LA PETICIÓN DE ENVÍO DE CORREO ===');
+  console.log('Headers recibidos:', req.headers);
+  console.log('Método:', req.method);
+  console.log('Body recibido:', JSON.stringify(req.body, null, 2));
+  
   // Configurar headers CORS para permitir múltiples orígenes
   const allowedOrigins = [
     'http://localhost:8081',
@@ -31,10 +41,6 @@ module.exports = async (req, res) => {
     return;
   }
 
-  console.log('API Key:', process.env.RESEND_API_KEY ? 'Presente' : 'No presente');
-  console.log('Método:', req.method);
-  console.log('Body:', JSON.stringify(req.body, null, 2));
-
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
   }
@@ -43,8 +49,6 @@ module.exports = async (req, res) => {
     const { userData, planData } = req.body;
     const { nombre, apellidos, email, telefono, mascotas } = userData;
     const { nombre: planNombre, precio, features } = planData;
-
-    console.log('Datos recibidos:', { email, planNombre });
 
     if (!email) {
       return res.status(400).json({ error: 'No se ha proporcionado un correo electrónico' });
@@ -114,7 +118,7 @@ module.exports = async (req, res) => {
             <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; text-align: center;">
               <p style="margin: 0;">Si tienes alguna pregunta, no dudes en contactarnos:</p>
               <p style="margin: 10px 0 0 0;">
-                <strong>Email:</strong> info@petcareseguros.com<br>
+                <strong>Email:</strong> info@resend.dev<br>
                 <strong>Teléfono:</strong> +34 900 123 456
               </p>
             </div>
@@ -129,7 +133,7 @@ module.exports = async (req, res) => {
 
     console.log('Intentando enviar correo a:', email);
     const { data, error } = await resend.emails.send({
-      from: 'PetCareSeguros <info@segurospeLudos.es>',
+      from: 'onboarding@resend.dev',
       to: [email],
       subject: `Presupuesto PetCareSeguros - Plan ${planNombre}`,
       html: htmlContent,
@@ -137,13 +141,6 @@ module.exports = async (req, res) => {
 
     if (error) {
       console.error('Error detallado al enviar el correo:', error);
-      // Manejar errores específicos de Resend
-      if (error.message.includes('Invalid email')) {
-        return res.status(400).json({ error: 'El correo electrónico no es válido', details: error });
-      }
-      if (error.message.includes('Rate limit')) {
-        return res.status(429).json({ error: 'Límite de envíos excedido', details: error });
-      }
       return res.status(500).json({ error: 'Error al enviar el correo', details: error });
     }
 
