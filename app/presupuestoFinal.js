@@ -12,6 +12,8 @@ import {
   Dimensions,
   Alert,
   Pressable,
+  useWindowDimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -264,12 +266,12 @@ const PlanSelectionCard = ({ plan, onPress, isSelected }) => {
       hoverStyle={theme.hoverShadow}
       scale={1.03}
     >
-      <TouchableOpacity onPress={onPress} style={styles.planCardInnerTouchable} activeOpacity={0.9}>
-            <View style={styles.planCardHeader}>
+      <TouchableOpacity onPress={onPress} style={[styles.planCardInnerTouchable, {alignItems: 'center'}]} activeOpacity={0.9}>
+            <View style={[styles.planCardHeader, {alignItems: 'center', width: '100%'}]}>
                 <MaterialCommunityIcons name={plan.icon} size={36} color={isSelected ? theme.white : (plan.recommended ? theme.accentColor : theme.primaryColor)} />
-                <Text style={[styles.planName, isSelected && styles.planNameSelected]}>{plan.name}</Text>
+                <Text style={[styles.planName, isSelected && styles.planNameSelected, {textAlign: 'center', width: '100%'}]}>{plan.name}</Text>
             </View>
-            <Text style={[styles.planPrice, isSelected && styles.planPriceSelected]}>
+            <Text style={[styles.planPrice, isSelected && styles.planPriceSelected, {textAlign: 'center', width: '100%'}]}>
                 {plan.priceDisplay || `${plan.price.replace('€/mes', '')}€/mes`}
             </Text>
             {plan.recommended && !isSelected && (
@@ -277,25 +279,27 @@ const PlanSelectionCard = ({ plan, onPress, isSelected }) => {
                 <Text style={styles.recommendedBadgeText}>Recomendado</Text>
               </View>
             )}
-            <Text style={[styles.planTeaser, isSelected && styles.planTeaserSelected]}>{plan.teaser || "Descripción breve del plan."}</Text>
+            <Text style={[styles.planTeaser, isSelected && styles.planTeaserSelected, {textAlign: 'center', width: '100%'}]}>{plan.teaser || "Descripción breve del plan."}</Text>
 
-            <View style={styles.planFeaturesList}>
+            <View style={[styles.planFeaturesList, {alignItems: 'center', width: '100%'}]}>
                 {plan.features.slice(0,3).map((feature, idx) => (
-                     <View key={idx} style={styles.planFeatureItem}>
+                     <View key={idx} style={[styles.planFeatureItem, {justifyContent: 'center'}]}>
                         <Ionicons name="checkmark" size={16} color={isSelected ? theme.white : theme.primaryColor} style={{opacity: isSelected ? 0.8 : 1}} />
-                        <Text style={[styles.planFeatureText, isSelected && styles.planFeatureTextSelected]}>{feature}</Text>
+                        <Text style={[styles.planFeatureText, isSelected && styles.planFeatureTextSelected, {textAlign: 'center'}]}>{feature}</Text>
                     </View>
                 ))}
                 {plan.features.length > 3 && (
-                  <Text style={[styles.planFeatureMoreText, isSelected && styles.planFeatureTextSelected]}>y más...</Text>
+                  <Text style={[styles.planFeatureMoreText, isSelected && styles.planFeatureTextSelected, {textAlign: 'center'}]}>y más...</Text>
                 )}
             </View>
 
-            <View style={[styles.selectPlanButton, isSelected && styles.selectPlanButtonSelected, plan.recommended && !isSelected && styles.recommendedSelectButton]}>
-                <Text style={[styles.selectPlanButtonText, isSelected && styles.selectPlanButtonTextSelected, plan.recommended && !isSelected && styles.recommendedSelectButtonText]}>
+            <View style={[styles.selectPlanButton, isSelected && styles.selectPlanButtonSelected, plan.recommended && !isSelected && styles.recommendedSelectButton, {position: 'relative', alignSelf: 'center', width: '100%', justifyContent: 'center', alignItems: 'center'}]}>
+                <Text style={[styles.selectPlanButtonText, isSelected && styles.selectPlanButtonTextSelected, plan.recommended && !isSelected && styles.recommendedSelectButtonText, {textAlign: 'center', width: '100%'}]}>
                     {isSelected ? "Plan Seleccionado" : "Elegir Este Plan"}
                 </Text>
-                {isSelected && <Ionicons name="checkmark-circle" size={20} color={theme.white} style={{marginLeft: spacing.small}}/>}
+                {isSelected && (
+                  <Ionicons name="checkmark-circle" size={20} color={theme.white} style={{position: 'absolute', right: 18, top: '50%', marginTop: -10}}/>
+                )}
             </View>
         </TouchableOpacity>
     </CardHoverView>
@@ -368,17 +372,96 @@ const PLANS_DATA = [
   { id: "plan3", name: "Premium", price: "79€/mes", icon: "star-outline", basePriceMonthly: "79.00", priceDisplay: "Desde 79.00€/mes", teaser: "La máxima protección con coberturas extendidas, servicios exclusivos y libre elección.", features: [ "Cobertura total en emergencias", "Medicamentos incluidos", "Peluquería y Bienestar", "Asistencia VIP 24/7", "Chequeo dental anual", "Plan nutricional personalizado", ], coverage: [ "Libre elección de veterinario a nivel nacional con reembolso del 80-90% de gastos (según baremo).", "Cobertura completa en emergencias (incluye UCI, pruebas avanzadas) sin límite anual significativo (consultar condiciones específicas).", "Reembolso del 80% en medicamentos prescritos (hasta 500€/año).", "1 servicio de peluquería y/o bienestar básico trimestral incluido en centros asociados.", "Asistencia VIP con gestor personal para trámites, citas y segunda opinión veterinaria.", "Chequeo dental anual completo (incluye limpieza, radiografías si es necesario, y extracciones simples) sin coste adicional.", "Consulta para plan nutricional personalizado y 2 seguimientos anuales.", "Cobertura de cirugías complejas y especializadas hasta 6.000€/año (sin franquicia o franquicia reducida).", "Hospitalización ilimitada (según criterio veterinario y necesidad médica).", "Pruebas diagnósticas avanzadas (resonancias, TAC, endoscopias) con autorización previa, hasta 1.500€/año.", "Responsabilidad Civil Premium (hasta 350.000€), incluye defensa jurídica.", "Fisioterapia y rehabilitación (hasta 15 sesiones/año) con prescripción.", "Cobertura por robo o extravío (gastos de búsqueda y compensación, según condiciones).", ], exclusions: [ "Enfermedades preexistentes no declaradas y sin informe veterinario detallado al contratar.", "Tratamientos experimentales, alternativos no reconocidos o cosméticos.", "Gastos de viaje o alojamiento del propietario, salvo casos excepcionales cubiertos.", "Cría y gestación (salvo complicaciones cubiertas específicamente).", ], extraInfo: "Sin periodo de carencia para accidentes, 7 días para enfermedades comunes. Descuento del 10% por pago anual. Incluye asistencia en viaje nacional para la mascota. Acceso a red de especialistas y descuentos en productos premium.", recommended: false, },
 ];
 
+// --- Componente AnimatedTextDots ---
+const AnimatedTextDots = ({ color = theme.primaryColor, size = 18, style }) => {
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActive(a => (a + 1) % 3);
+    }, 350);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <Text style={[{ flexDirection: 'row', fontSize: size, marginLeft: 2 }, style]}> 
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Text key={i} style={{ color: i === active ? color : color + '55', opacity: i === active ? 1 : 0.7 }}>.{''}</Text>
+      ))}
+    </Text>
+  );
+};
+
+// --- Componente BouncingDotsText multiplataforma (simula salto con fontSize) ---
+const BouncingDotsText = ({ baseText = 'Enviando', color = theme.white, dotColor = theme.primaryColor, fontSize = 16, style }) => {
+  const dotCount = 3;
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActive(a => (a + 1) % dotCount);
+    }, 200);
+    return () => clearInterval(interval);
+  }, []);
+  const sizes = [fontSize + 6, fontSize, fontSize];
+  return (
+    <Text style={[{ color, fontSize, textAlign: 'center', width: '100%', fontWeight: 'bold', letterSpacing: 1, flexDirection: 'row' }, style]}>
+      {baseText}
+      {Array.from({ length: dotCount }).map((_, i) => (
+        <Text
+          key={i}
+          style={{
+            color: dotColor,
+            fontSize: active === i ? fontSize + 6 : fontSize,
+            fontWeight: 'bold',
+            marginLeft: 1,
+            marginRight: 1,
+            lineHeight: fontSize + 8,
+            verticalAlign: 'bottom',
+          }}
+        >
+          .
+        </Text>
+      ))}
+    </Text>
+  );
+};
 
 export default function PresupuestoFinalPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { currentUser, userData } = useAuth();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 700;
 
   const [parsedAnimals, setParsedAnimals] = useState([]);
   const [parsedOwnerData, setParsedOwnerData] = useState({ nombre: "" });
   const [isGuestUser, setIsGuestUser] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState(params.selectedPlanId || PLANS_DATA.find(p => p.recommended)?.id || PLANS_DATA[0]?.id);
+
+  // Estado para el índice del plan visible en móvil
+  const [visiblePlanIndex, setVisiblePlanIndex] = useState(0);
+  const planScrollRef = useRef(null);
+
+  // Actualiza el índice visible cuando cambia el plan seleccionado
+  useEffect(() => {
+    const idx = PLANS_DATA.findIndex(p => p.id === selectedPlanId);
+    if (idx !== -1) setVisiblePlanIndex(idx);
+  }, [selectedPlanId]);
+
+  // Función para hacer scroll al plan anterior/siguiente
+  const scrollToPlan = (index) => {
+    if (planScrollRef.current && isMobile) {
+      const planWidth = width;
+      planScrollRef.current.scrollTo({ x: planWidth * index, animated: true });
+      setVisiblePlanIndex(index);
+      setSelectedPlanId(PLANS_DATA[index].id);
+    }
+  };
+
+  // Asegura que visiblePlanIndex siempre es 0 al cargar si es móvil
+  useEffect(() => {
+    if (isMobile) setVisiblePlanIndex(0);
+  }, [isMobile]);
 
   useEffect(() => {
     let animalsList = [];
@@ -509,73 +592,151 @@ export default function PresupuestoFinalPage() {
   };
 
   const handleEnviarPresupuesto = async () => {
-    try {
-      // Verificar que tenemos un email válido
-      if (!parsedOwnerData.email) {
-        Alert.alert(
-          'Error',
-          'No se ha encontrado un correo electrónico válido. Por favor, asegúrate de haber proporcionado tu correo electrónico.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
+    setIsSendingEmail(true);
+    // Espera artificial para dar sensación de carga
+    await new Promise(res => setTimeout(res, 1000));
 
-      const userData = {
-        nombre: parsedOwnerData.nombre,
-        apellidos: `${parsedOwnerData.primerApellido} ${parsedOwnerData.segundoApellido}`.trim(),
-        email: parsedOwnerData.email,
-        telefono: parsedOwnerData.telefono,
-        mascotas: parsedAnimals
-      };
-
-      const planData = {
-        nombre: selectedPlan.name,
-        precio: selectedPlan.price,
-        features: selectedPlan.features
-      };
-
-      await sendPresupuestoEmail(userData, planData);
-      Alert.alert(
-        '¡Éxito!',
-        'El presupuesto ha sido enviado a tu correo electrónico.',
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      console.error('Error al enviar el presupuesto:', error);
+    // Verificar que tenemos un email válido
+    if (!parsedOwnerData.email) {
+      setIsSendingEmail(false);
       Alert.alert(
         'Error',
-        'No se pudo enviar el presupuesto. Por favor, intenta de nuevo más tarde.',
+        'No se ha encontrado un correo electrónico válido. Por favor, asegúrate de haber proporcionado tu correo electrónico.',
         [{ text: 'OK' }]
       );
+      return;
     }
+
+    const userData = {
+      nombre: parsedOwnerData.nombre,
+      apellidos: `${parsedOwnerData.primerApellido} ${parsedOwnerData.segundoApellido}`.trim(),
+      email: parsedOwnerData.email,
+      telefono: parsedOwnerData.telefono,
+      mascotas: parsedAnimals
+    };
+
+    const planData = {
+      nombre: selectedPlan.name,
+      precio: selectedPlan.price,
+      features: selectedPlan.features
+    };
+
+    try {
+      await sendPresupuestoEmail(userData, planData);
+      await new Promise(res => setTimeout(res, 800));
+    } catch (error) {
+      console.error('Error al enviar el presupuesto:', error);
+      // No mostramos Alert, simplemente avanzamos
+    }
+
+    // Navegación según autenticación
+    if (!currentUser) {
+      // Usuario NO autenticado: ir a registro con los datos
+      const presupuestoData = {
+        fromPresupuesto: 'true',
+        animals: JSON.stringify(parsedAnimals),
+        ownerData: JSON.stringify({
+          nombre: parsedOwnerData.nombre,
+          primerApellido: parsedOwnerData.primerApellido,
+          segundoApellido: parsedOwnerData.segundoApellido,
+          email: parsedOwnerData.email,
+          telefono: parsedOwnerData.telefono
+        }),
+        howHeard: params.howHeard || "",
+        selectedPlanId: selectedPlanId,
+        planNombre: selectedPlan?.name || "",
+        precioEstimado: finalPriceDisplay,
+        numeroMascotas: parsedAnimals.length.toString()
+      };
+      setIsSendingEmail(false);
+      router.push({ pathname: '/registro', params: presupuestoData });
+      return;
+    }
+
+    // Usuario autenticado: ir a datosCompletos
+    const datosCompletosParams = {
+      animals: JSON.stringify(parsedAnimals),
+      ownerData: JSON.stringify({
+        nombre: parsedOwnerData.nombre,
+        primerApellido: parsedOwnerData.primerApellido,
+        segundoApellido: parsedOwnerData.segundoApellido,
+        email: parsedOwnerData.email,
+        telefono: parsedOwnerData.telefono
+      }),
+      howHeard: params.howHeard || "",
+      selectedPlanId: selectedPlanId,
+      planNombre: selectedPlan?.name || "",
+      precioEstimado: finalPriceDisplay,
+      numeroMascotas: parsedAnimals.length.toString(),
+      fromPresupuestoFinal: 'true'
+    };
+    setIsSendingEmail(false);
+    router.push({ pathname: '/datosCompletos', params: datosCompletosParams });
   };
 
   const ownerDisplayName = parsedOwnerData?.nombre?.trim() || "Estimado Cliente";
   const petCountText = numAnimals > 0 ? (numAnimals === 1 ? `tu mascota (${parsedAnimals[0]?.nombre || 'nombre no especificado'})` : `tus ${numAnimals} mascotas`) : "tus futuras mascotas";
 
   return (
-    <View style={styles.outerContainer}>
-      <Header title="Tu Presupuesto Personalizado" onNavigateToHome={() => router.replace('/')} />
-      <ScrollView ref={mainScrollViewRef} style={styles.scrollViewStyle} contentContainerStyle={styles.scrollContentContainer} keyboardShouldPersistTaps="handled" >
-        <View style={styles.innerContainer}>
-            <FadeInSection animationKey={`intro-${ownerDisplayName}-${numAnimals}`} style={styles.pageHeader}>
-                <Text style={styles.pageTitle}>¡Gracias, {ownerDisplayName}!</Text>
-                <Text style={styles.pageSubtitle}>Hemos preparado estas opciones de seguro para {petCountText}. Selecciona un plan para ver todos los detalles y coberturas.</Text>
+    <View style={[styles.outerContainer, isMobile && { padding: 0, maxWidth: '100vw', width: '100vw', overflowX: 'hidden' }]}>
+      <Header title="Tu Presupuesto Personalizado" onNavigateToHome={() => router.replace('/')} isMobile={isMobile} />
+      <ScrollView ref={mainScrollViewRef} style={[styles.scrollViewStyle, isMobile && { width: '100vw', maxWidth: '100vw', overflowX: 'hidden' }]} contentContainerStyle={[styles.scrollContentContainer, isMobile && { paddingHorizontal: 0 }]} keyboardShouldPersistTaps="handled" >
+        <View style={[styles.innerContainer, isMobile && { width: '100vw', maxWidth: '100vw', paddingHorizontal: 0, alignSelf: 'center' }]}>
+            <FadeInSection animationKey={`intro-${ownerDisplayName}-${numAnimals}`} style={[styles.pageHeader, isMobile && { paddingHorizontal: 10, marginVertical: 24 }]}>
+                <Text style={[styles.pageTitle, isMobile && { fontSize: 22, marginBottom: 10 }]}>¡Gracias, {ownerDisplayName}!</Text>
+                <Text style={[styles.pageSubtitle, isMobile && { fontSize: 15, maxWidth: '98vw', lineHeight: 22 }]}>Hemos preparado estas opciones de seguro para {petCountText}. Selecciona un plan para ver todos los detalles y coberturas.</Text>
             </FadeInSection>
 
-            <View style={styles.planSectionWrapper}>
-                <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalPlanContainer} >
+            <View style={[styles.planSectionWrapper, isMobile && { marginBottom: 24, width: '100vw', maxWidth: '100vw', position: 'relative' }]}> 
+                {/* Flechas de navegación solo en móvil y si hay más de un plan */}
+                {isMobile && PLANS_DATA.length > 1 && (
+                  <>
+                    {visiblePlanIndex > 0 && (
+                      <TouchableOpacity
+                        style={[styles.arrowButton, styles.arrowLeft]}
+                        onPress={() => scrollToPlan(visiblePlanIndex - 1)}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="chevron-back" size={32} color={theme.primaryColor} />
+                      </TouchableOpacity>
+                    )}
+                    {visiblePlanIndex < PLANS_DATA.length - 1 && (
+                      <TouchableOpacity
+                        style={[styles.arrowButton, styles.arrowRight]}
+                        onPress={() => scrollToPlan(visiblePlanIndex + 1)}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="chevron-forward" size={32} color={theme.primaryColor} />
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
+                <ScrollView
+                  ref={planScrollRef}
+                  horizontal={true}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={[styles.horizontalPlanContainer, isMobile ? { paddingHorizontal: 0 } : { paddingHorizontal: spacing.medium, paddingVertical: spacing.small, alignItems: 'stretch' }]}
+                  scrollEventThrottle={16}
+                  onMomentumScrollEnd={e => {
+                    if (isMobile) {
+                      const planWidth = width;
+                      const idx = Math.round(e.nativeEvent.contentOffset.x / planWidth);
+                      setVisiblePlanIndex(idx);
+                      setSelectedPlanId(PLANS_DATA[idx].id);
+                    }
+                  }}
+                >
                     {PLANS_DATA.map((plan, index) => (
-                        <View key={plan.id} style={styles.planCardFadeWrapper}>
+                        <View key={plan.id} style={isMobile
+                          ? [styles.planCardFadeWrapper, { width: width, minWidth: width, maxWidth: width, marginRight: 0, paddingHorizontal: 8 }]
+                          : [styles.planCardFadeWrapper, { width: cardWidthWeb, minWidth: cardWidthWeb, maxWidth: cardWidthWeb, marginRight: spacing.large }]
+                        }>
                             <FadeInSection animationKey={`plan-card-${index}-${numAnimals}`} duration={300 + index * 100} style={{flex: 1}} >
                                 <PlanSelectionCard
                                     plan={plan}
                                     onPress={() => {
                                         setSelectedPlanId(plan.id);
-                                        const yOffsetForDetails = Platform.OS === 'web' ? 500 : Dimensions.get('window').height * 0.4;
-                                        if (mainScrollViewRef.current) { 
-                                            mainScrollViewRef.current.scrollTo({ y: yOffsetForDetails, animated: true }); 
-                                        }
+                                        if (isMobile) scrollToPlan(index);
                                     }}
                                     isSelected={selectedPlanId === plan.id}
                                 />
@@ -586,62 +747,76 @@ export default function PresupuestoFinalPage() {
             </View>
 
             {selectedPlan && (
-                <View style={styles.selectedPlanDetailsSection}>
+                <View style={[styles.selectedPlanDetailsSection, isMobile ? { marginTop: 120, marginBottom: 18 } : { marginTop: 160 }]}> 
                     <FadeInSection animationKey={`plan-${selectedPlanId}-${numAnimals}`}>
-                        <Text style={styles.selectedPlanTitle}>Detalles del {selectedPlan.name}</Text>
-                        <InfoCard 
-                            title="Precio Estimado Final" 
-                            iconName="cash-outline" 
-                            style={styles.priceCard} 
-                            titleCentered={true} 
-                            titleStyle={styles.priceCardTitleText} 
-                            titleIconColor={theme.white}
-                        >
-                            <Text style={styles.finalPriceText}>{finalPriceDisplay}</Text>
-                            <Text style={styles.priceDisclaimerText}>
-                                Estimación basada en el número de mascotas y plan seleccionado. El precio final puede variar según características específicas y promociones. Se confirmará antes de la contratación.
+                        <View style={[styles.planDetailsDecoratedCard, isMobile && {padding: 14}]}> 
+                          <View style={[styles.planDetailsTitleRow, {justifyContent: 'center', alignItems: 'center'}]}>
+                            <MaterialCommunityIcons name={selectedPlan.icon} size={32} color={theme.primaryColor} style={{marginRight: 6, opacity: 1}} />
+                            <Text style={[styles.selectedPlanTitle, {flex: 1, textAlign: 'center', lineHeight: 32, marginBottom: 0, marginTop: 0}, isMobile && { fontSize: 20 }]}> 
+                              Detalles del plan <Text style={{color: theme.primaryColor}}>{selectedPlan.name}</Text>
                             </Text>
-                        </InfoCard>
-                        <InfoCard title="Coberturas Principales" iconName="shield-checkmark-outline" iconSet="Ionicons">
-                            {selectedPlan.coverage.map((item, index) => (
-                                <View key={`cov-${index}`} style={[styles.detailListItem, index === selectedPlan.coverage.length - 1 && styles.lastDetailListItem]}>
-                                    <Ionicons name="checkmark-circle-outline" size={20} color={theme.success} style={styles.listItemIcon} />
-                                    <Text style={styles.detailListText}>{item}</Text>
-                                </View>
-                            ))}
-                        </InfoCard>
-                        <InfoCard title="Exclusiones Importantes" iconName="close-circle-outline" iconSet="Ionicons">
-                            {selectedPlan.exclusions.map((item, index) => (
-                                <View key={`exc-${index}`} style={[styles.detailListItem, index === selectedPlan.exclusions.length - 1 && styles.lastDetailListItem]}>
-                                    <Ionicons name="remove-circle-outline" size={20} color={theme.error} style={styles.listItemIcon} />
-                                    <Text style={styles.detailListText}>{item}</Text>
-                                </View>
-                            ))}
-                        </InfoCard>
-                        {selectedPlan.extraInfo && (
-                            <InfoCard title="Información Adicional y Extras" iconName="information-circle-outline" iconSet="Ionicons">
-                                <Text style={styles.extraInfoText}>{selectedPlan.extraInfo}</Text>
-                            </InfoCard>
-                        )}
-                        <View style={styles.ctaButtonContainer}>
-                            <AnimatedButton 
-                                title="Enviar Presupuesto por Email" 
-                                onPress={handleEnviarPresupuesto} 
-                                style={styles.animatedButtonWrapper} 
-                                buttonStyle={styles.emailButton} 
-                                textStyle={styles.buttonText} 
-                                iconName="mail-outline" 
-                                iconSet="Ionicons" 
-                            />
-                            <AnimatedButton 
-                                title="Contratar Plan" 
-                                onPress={handleContratarPlan} 
-                                style={styles.animatedButtonWrapper} 
-                                buttonStyle={styles.contratarButton} 
-                                textStyle={styles.buttonText} 
-                                iconName="checkmark-circle-outline" 
-                                iconSet="Ionicons" 
-                            />
+                            <MaterialCommunityIcons name={selectedPlan.icon} size={32} color={theme.primaryColor} style={{marginLeft: 6, opacity: 1}} />
+                          </View>
+                          <View style={[styles.planDetailsSeparatorFull]} />
+                          <InfoCard 
+                              title="Precio Estimado Final" 
+                              iconName="cash-outline" 
+                              style={[styles.priceCard, isMobile && { paddingVertical: 18 }]} 
+                              titleCentered={true} 
+                              titleStyle={[styles.priceCardTitleText, isMobile && { fontSize: 16 }]} 
+                              titleIconColor={theme.white}
+                          >
+                              <Text style={[styles.finalPriceText, isMobile && { fontSize: 22, marginBottom: 6 }]}>{finalPriceDisplay}</Text>
+                              <Text style={[styles.priceDisclaimerText, isMobile && { fontSize: 11 }]}> 
+                                  Estimación basada en el número de mascotas y plan seleccionado. El precio final puede variar según características específicas y promociones. Se confirmará antes de la contratación.
+                              </Text>
+                          </InfoCard>
+                          <InfoCard title="Coberturas Principales" iconName="shield-checkmark-outline" iconSet="Ionicons">
+                              {selectedPlan.coverage.map((item, index) => (
+                                  <View key={`cov-${index}`} style={[styles.detailListItem, index === selectedPlan.coverage.length - 1 && styles.lastDetailListItem, isMobile && { paddingVertical: 7 }]}> 
+                                      <Ionicons name="checkmark-circle-outline" size={18} color={theme.success} style={styles.listItemIcon} />
+                                      <Text style={[styles.detailListText, isMobile && { fontSize: 13 }]}>{item}</Text>
+                                  </View>
+                              ))}
+                          </InfoCard>
+                          <InfoCard title="Exclusiones Importantes" iconName="close-circle-outline" iconSet="Ionicons">
+                              {selectedPlan.exclusions.map((item, index) => (
+                                  <View key={`exc-${index}`} style={[styles.detailListItem, index === selectedPlan.exclusions.length - 1 && styles.lastDetailListItem, isMobile && { paddingVertical: 7 }]}> 
+                                      <Ionicons name="remove-circle-outline" size={18} color={theme.error} style={styles.listItemIcon} />
+                                      <Text style={[styles.detailListText, isMobile && { fontSize: 13 }]}>{item}</Text>
+                                  </View>
+                              ))}
+                          </InfoCard>
+                          {selectedPlan.extraInfo && (
+                              <InfoCard title="Información Adicional y Extras" iconName="information-circle-outline" iconSet="Ionicons">
+                                  <Text style={[styles.extraInfoText, isMobile && { fontSize: 13 }]}>{selectedPlan.extraInfo}</Text>
+                              </InfoCard>
+                          )}
+                          <View style={[styles.ctaButtonContainer, isMobile && { gap: 10, marginTop: 18 }]}> 
+                              <AnimatedButton 
+                                  title={isSendingEmail ? "Enviando..." : "Enviar Presupuesto por Email"}
+                                  onPress={isSendingEmail ? undefined : handleEnviarPresupuesto}
+                                  style={[styles.animatedButtonWrapper, isMobile && { width: '98%', maxWidth: 500 }]} 
+                                  buttonStyle={[styles.emailButton, isMobile && { paddingVertical: 12 }, isSendingEmail && { opacity: 0.7 }]} 
+                                  textStyle={[styles.buttonText, isMobile && { fontSize: 15 }]} 
+                                  iconName={isSendingEmail ? undefined : "mail-outline"}
+                                  iconSet="Ionicons"
+                                  disabled={isSendingEmail}
+                              >
+                                {isSendingEmail && (
+                                  <BouncingDotsText baseText="Enviando" color={theme.white} dotColor={theme.primaryColor} fontSize={isMobile ? 15 : 16} />
+                                )}
+                              </AnimatedButton>
+                              <AnimatedButton 
+                                  title="Contratar Plan" 
+                                  onPress={handleContratarPlan} 
+                                  style={[styles.animatedButtonWrapper, isMobile && { width: '98%', maxWidth: 500 }]} 
+                                  buttonStyle={[styles.contratarButton, isMobile && { paddingVertical: 12 }]} 
+                                  textStyle={[styles.buttonText, isMobile && { fontSize: 15 }]} 
+                                  iconName="checkmark-circle-outline" 
+                                  iconSet="Ionicons" 
+                              />
+                          </View>
                         </View>
                     </FadeInSection>
                 </View>
@@ -779,5 +954,54 @@ const styles = StyleSheet.create({
   },
   buttonWrapper: {
     marginHorizontal: spacing.small,
+  },
+  arrowButton: {
+    position: 'absolute',
+    top: '50%',
+    zIndex: 10,
+    backgroundColor: theme.white,
+    borderRadius: 30,
+    padding: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+    opacity: 0.85,
+  },
+  arrowLeft: {
+    left: 2,
+    transform: [{ translateY: -16 }],
+  },
+  arrowRight: {
+    right: 2,
+    transform: [{ translateY: -16 }],
+  },
+  planDetailsDecoratedCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 28,
+    marginBottom: 18,
+    ...theme.shadow,
+    borderWidth: 1.5,
+    borderColor: theme.primaryColor + '22',
+    alignItems: 'stretch',
+  },
+  planDetailsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    gap: 6,
+    width: '100%',
+  },
+  planDetailsSeparatorFull: {
+    height: 4,
+    width: '100%',
+    backgroundColor: theme.primaryColor,
+    borderRadius: 2,
+    marginBottom: 22,
+    alignSelf: 'center',
+    opacity: 0.35,
   },
 });

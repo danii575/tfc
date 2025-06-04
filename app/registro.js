@@ -10,7 +10,8 @@ import {
   Platform,
   ActivityIndicator,
   KeyboardAvoidingView,
-  ScrollView
+  ScrollView,
+  useWindowDimensions
 } from 'react-native';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -57,6 +58,8 @@ export default function RegistroScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { refreshUserData } = useAuth();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 700;
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -78,19 +81,24 @@ export default function RegistroScreen() {
     console.log("[RegistroScreen] Parámetros recibidos:", params);
     if (params.fromPresupuesto === 'true' && params.ownerData) {
       try {
-        const ownerData = JSON.parse(params.ownerData);
-        console.log("[RegistroScreen] Datos del dueño recibidos:", ownerData);
-        
+        let ownerData = {};
+        try {
+          ownerData = JSON.parse(params.ownerData);
+        } catch (error) {
+          console.error("[RegistroScreen] Error al parsear ownerData:", error);
+          Alert.alert('Error', 'No se pudieron cargar los datos del presupuesto. Por favor, revisa tu conexión o vuelve a intentarlo.');
+        }
         setFormData(prev => ({
           ...prev,
-          nombre: ownerData.nombre || '',
-          primerApellido: ownerData.primerApellido || '',
-          segundoApellido: ownerData.segundoApellido || '',
-          email: ownerData.email || '',
-          telefono: ownerData.telefono || ''
+          nombre: ownerData?.nombre || '',
+          primerApellido: ownerData?.primerApellido || '',
+          segundoApellido: ownerData?.segundoApellido || '',
+          email: ownerData?.email || '',
+          telefono: ownerData?.telefono || ''
         }));
       } catch (error) {
-        console.error("[RegistroScreen] Error al parsear ownerData:", error);
+        console.error("[RegistroScreen] Error inesperado en pre-relleno:", error);
+        Alert.alert('Error', 'No se pudieron cargar los datos del presupuesto.');
       }
     }
   }, [params]);
@@ -202,51 +210,77 @@ export default function RegistroScreen() {
       
       // Si viene del presupuesto, redirigir a datosCompletos con los datos
       if (params.fromPresupuesto === 'true') {
-        console.log("[handleRegister] Redirigiendo a datosCompletos...");
-        const datosCompletosParams = {
-          animals: params.animals || JSON.stringify([]),
-          ownerData: JSON.stringify({
-            nombre: formData.nombre,
-            primerApellido: formData.primerApellido,
-            segundoApellido: formData.segundoApellido,
-            email: formData.email,
-            telefono: formData.telefono
-          }),
-          howHeard: params.howHeard || "",
-          selectedPlanId: params.selectedPlanId || "",
-          planNombre: params.planNombre || "",
-          precioEstimado: params.precioEstimado || "",
-          numeroMascotas: params.numeroMascotas || "0",
-          fromRegistro: 'true'
-        };
-        
-        console.log("[handleRegister] Parámetros para datosCompletos:", datosCompletosParams);
-        
-        router.replace({
-          pathname: '/datosCompletos',
-          params: datosCompletosParams
-        });
+        try {
+          console.log("[handleRegister] Redirigiendo a datosCompletos...");
+          const datosCompletosParams = {
+            animals: params.animals || JSON.stringify([]),
+            ownerData: JSON.stringify({
+              nombre: formData.nombre,
+              primerApellido: formData.primerApellido,
+              segundoApellido: formData.segundoApellido,
+              email: formData.email,
+              telefono: formData.telefono
+            }),
+            howHeard: params.howHeard || "",
+            selectedPlanId: params.selectedPlanId || "",
+            planNombre: params.planNombre || "",
+            precioEstimado: params.precioEstimado || "",
+            numeroMascotas: params.numeroMascotas || "0",
+            fromRegistro: 'true'
+          };
+          
+          console.log("[handleRegister] Parámetros para datosCompletos (ANTES DE REDIRIGIR):", datosCompletosParams);
+          if (Platform.OS === 'web') {
+            // En web, navega directamente
+            router.replace({ pathname: '/datosCompletos', params: datosCompletosParams });
+          } else {
+            // En móvil, muestra Alert y navega en el callback
+            Alert.alert(
+              'Registro completado',
+              'Tu cuenta se ha creado correctamente. Ahora te llevamos a completar tus datos para el seguro.',
+              [
+                {
+                  text: 'Continuar',
+                  onPress: () => {
+                    try {
+                      router.replace({ pathname: '/datosCompletos', params: datosCompletosParams });
+                    } catch (redirError) {
+                      console.error("[handleRegister] Error al redirigir a datosCompletos:", redirError);
+                      Alert.alert('Error', 'No se pudo redirigir a la pantalla de datos completos. Por favor, accede desde el menú principal.');
+                    }
+                  }
+                }
+              ]
+            );
+          }
+        } catch (redirError) {
+          console.error("[handleRegister] Error al redirigir a datosCompletos:", redirError);
+          Alert.alert('Error', 'No se pudo redirigir a la pantalla de datos completos. Por favor, accede desde el menú principal.');
+        }
       } else {
         console.log("[handleRegister] Redirigiendo a home...");
         router.replace('/');
       }
     } catch (error) {
-      console.error("[handleRegister] Error completo:", error);
-      console.error("[handleRegister] Error code:", error.code);
-      console.error("[handleRegister] Error message:", error.message);
-      
-      let errorMessage = 'Error al registrar usuario.';
+      setIsLoading(false);
       if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'Este correo electrónico ya está registrado.';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'La contraseña es demasiado débil.';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'El formato del correo electrónico no es válido.';
-      } else if (error.code === 'permission-denied') {
-        errorMessage = 'Error de permisos. Por favor, inténtalo de nuevo.';
+        Alert.alert(
+          'Correo ya registrado',
+          'El correo electrónico ya está registrado. Serás redirigido a la pantalla de inicio de sesión.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                router.replace('/login');
+              }
+            }
+          ]
+        );
+        setErrors(prev => ({ ...prev, email: 'Este correo ya está registrado. Inicia sesión.' }));
+        return;
       }
-      
-      Alert.alert('Error de Registro', errorMessage + '\n\nDetalles técnicos: ' + error.message);
+      console.error("[handleRegister] Error en el registro:", error);
+      Alert.alert('Error', error.message || 'Error al registrar usuario.');
     } finally {
       setIsLoading(false);
     }
@@ -291,8 +325,8 @@ export default function RegistroScreen() {
               </View>
 
               <View style={styles.inputsGrid}>
-                <View style={styles.inputRow}>
-                  <View style={[styles.inputGroup, styles.halfWidth]}>
+                <View style={[styles.inputRow, isMobile && { flexDirection: 'column', gap: 0 }]}>
+                  <View style={[styles.inputGroup, isMobile ? { width: '100%' } : styles.halfWidth]}>
                     <Text style={styles.inputLabel}>Nombre</Text>
                     <View style={[
                       styles.inputContainerView, 
@@ -316,7 +350,7 @@ export default function RegistroScreen() {
                     {errors.nombre ? <Text style={styles.errorTextFeedback}>{errors.nombre}</Text> : null}
                   </View>
 
-                  <View style={[styles.inputGroup, styles.halfWidth]}>
+                  <View style={[styles.inputGroup, isMobile ? { width: '100%' } : styles.halfWidth]}>
                     <Text style={styles.inputLabel}>Primer Apellido</Text>
                     <View style={[
                       styles.inputContainerView, 
@@ -341,8 +375,8 @@ export default function RegistroScreen() {
                   </View>
                 </View>
 
-                <View style={styles.inputRow}>
-                  <View style={[styles.inputGroup, styles.halfWidth]}>
+                <View style={[styles.inputRow, isMobile && { flexDirection: 'column', gap: 0 }]}>
+                  <View style={[styles.inputGroup, isMobile ? { width: '100%' } : styles.halfWidth]}>
                     <Text style={styles.inputLabel}>Segundo Apellido</Text>
                     <View style={[
                       styles.inputContainerView, 
@@ -366,7 +400,7 @@ export default function RegistroScreen() {
                     {errors.segundoApellido ? <Text style={styles.errorTextFeedback}>{errors.segundoApellido}</Text> : null}
                   </View>
 
-                  <View style={[styles.inputGroup, styles.halfWidth]}>
+                  <View style={[styles.inputGroup, isMobile ? { width: '100%' } : styles.halfWidth]}>
                     <Text style={styles.inputLabel}>Teléfono</Text>
                     <View style={[
                       styles.inputContainerView, 
@@ -391,8 +425,8 @@ export default function RegistroScreen() {
                   </View>
                 </View>
 
-                <View style={styles.inputRow}>
-                  <View style={[styles.inputGroup, styles.halfWidth]}>
+                <View style={[styles.inputRow, isMobile && { flexDirection: 'column', gap: 0 }]}>
+                  <View style={[styles.inputGroup, isMobile ? { width: '100%' } : styles.halfWidth]}>
                     <Text style={styles.inputLabel}>Contraseña</Text>
                     <View style={[
                       styles.inputContainerView, 
@@ -414,7 +448,7 @@ export default function RegistroScreen() {
                     {errors.password ? <Text style={styles.errorTextFeedback}>{errors.password}</Text> : null}
                   </View>
 
-                  <View style={[styles.inputGroup, styles.halfWidth]}>
+                  <View style={[styles.inputGroup, isMobile ? { width: '100%' } : styles.halfWidth]}>
                     <Text style={styles.inputLabel}>Confirmar Contraseña</Text>
                     <View style={[
                       styles.inputContainerView, 
@@ -518,7 +552,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.white, 
     borderRadius: theme.borderRadius, 
     padding: Platform.OS === 'web' ? spacing.extraLarge : spacing.large, 
-    ...theme.shadow 
+    ...theme.shadow,
+    minWidth: 0,
   },
   pageTitle: { fontSize: 24, fontWeight: 'bold', color: theme.primaryColor, marginBottom: spacing.medium, textAlign: 'center' },
   formTitle: { ...typography.heading2, color: theme.secondaryColor, marginBottom: spacing.small, textAlign: 'center' },

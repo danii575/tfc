@@ -127,9 +127,12 @@ const Header = (props) => {
         ) : (
           currentUser ? (
             <>
-              <Text style={styles.userNameText} numberOfLines={1}>
-                Hola, {userData?.nombreCompleto || userData?.nombre || currentUser.displayName || currentUser.email?.split('@')[0]}
-              </Text>
+              <TouchableOpacity style={{flexDirection: 'row', alignItems: 'center', marginRight: 12}} onPress={() => router.push('/PerfilUsuario')}>
+                <MaterialIcons name="person" size={24} color={COLORS.primary} style={{marginRight: 6}} />
+                <Text style={styles.userNameText} numberOfLines={1}>
+                  {userData?.nombreCompleto || userData?.nombre || currentUser.displayName || currentUser.email?.split('@')[0]}
+                </Text>
+              </TouchableOpacity>
               <HeaderHoverable onPress={handleLogout} style={styles.authButton} hoverStyle={styles.loginButtonHover} isButton={true}>
                 <MaterialIcons name="logout" size={18} color={COLORS.primary} style={{marginRight: spacing.small / 2}} />
                 <Text style={styles.authButtonText}>Salir</Text>
@@ -177,10 +180,16 @@ const Header = (props) => {
             </View>
             <View style={styles.drawerAuth}>
               {currentUser ? (
-                <TouchableOpacity onPress={() => { closeDrawer(); handleLogout(); }} style={styles.drawerAuthButton}>
-                  <MaterialIcons name="logout" size={18} color={COLORS.primary} style={{marginRight: spacing.small / 2}} />
-                  <Text style={styles.authButtonText}>Salir</Text>
-                </TouchableOpacity>
+                <>
+                  <TouchableOpacity onPress={() => { closeDrawer(); router.push('/PerfilUsuario'); }} style={styles.drawerAuthButton}>
+                    <MaterialIcons name="person" size={20} color={COLORS.primary} style={{marginRight: 8}} />
+                    <Text style={styles.authButtonText}>Perfil</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => { closeDrawer(); handleLogout(); }} style={styles.drawerAuthButton}>
+                    <MaterialIcons name="logout" size={18} color={COLORS.primary} style={{marginRight: spacing.small / 2}} />
+                    <Text style={styles.authButtonText}>Salir</Text>
+                  </TouchableOpacity>
+                </>
               ) : (
                 <>
                   <TouchableOpacity onPress={() => { closeDrawer(); router.push('/login'); }} style={styles.drawerAuthButton}>

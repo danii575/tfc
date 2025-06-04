@@ -13,6 +13,7 @@ import {
   Pressable,
   Animated,
   Easing,
+  useWindowDimensions,
 } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -588,6 +589,9 @@ export default function PasarelaPago() {
     }
   }, [showModal]);
 
+  const { width } = useWindowDimensions();
+  const isMobile = width < 700;
+
   return (
     <View style={styles.container}>
       <Header />
@@ -654,7 +658,7 @@ export default function PasarelaPago() {
           {/* Métodos de Pago */}
           <FadeInSection animationKey="payment-methods" style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Método de Pago</Text>
-            <View style={styles.paymentMethods}>
+            <View style={[styles.paymentMethods, isMobile && { flexDirection: 'column', gap: 10 }]}>
               <TouchableOpacity
                 style={[styles.paymentMethod, metodoPago === 'tarjeta' && styles.paymentMethodActive]}
                 onPress={() => setMetodoPago('tarjeta')}
@@ -693,13 +697,15 @@ export default function PasarelaPago() {
                       onChangeText={(value) => handleInputChange('nombreTitular', value)}
                       placeholder="Como aparece en la tarjeta"
                       placeholderTextColor={theme.greyMedium}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
                     />
                   </View>
                   {errors.nombreTitular && <Text style={styles.errorText}>{errors.nombreTitular}</Text>}
                 </View>
 
-                <View style={styles.cardRow}>
-                  <View style={styles.cardColumn}>
+                <View style={[styles.cardRow, isMobile && { flexDirection: 'column', gap: 0 }]}>
+                  <View style={[styles.cardColumn, isMobile && { width: '100%' }]}>
                     <Text style={styles.label}>Número de Tarjeta *</Text>
                     <View style={[styles.cardInput, errors.numeroTarjeta && styles.cardInputError]}>
                       <TextInput
@@ -714,7 +720,7 @@ export default function PasarelaPago() {
                     </View>
                     {errors.numeroTarjeta && <Text style={styles.errorText}>{errors.numeroTarjeta}</Text>}
                   </View>
-                  <View style={styles.cardColumnLast}>
+                  <View style={[styles.cardColumnLast, isMobile && { width: '100%' }]}>
                     <Text style={styles.label}>CVV *</Text>
                     <View style={[styles.cardInput, errors.cvv && styles.cardInputError]}>
                       <TextInput
@@ -729,8 +735,8 @@ export default function PasarelaPago() {
                     {errors.cvv && <Text style={styles.errorText}>{errors.cvv}</Text>}
                   </View>
                 </View>
-                <View style={styles.cardRow}>
-                  <View style={styles.cardColumn}>
+                <View style={[styles.cardRow, isMobile && { flexDirection: 'column', gap: 0 }]}>
+                  <View style={[styles.cardColumn, isMobile && { width: '100%' }]}>
                     <Text style={styles.label}>Fecha de Expiración *</Text>
                     <View style={[styles.cardInput, errors.mesExpiracion && styles.cardInputError]}>
                       <TextInput
@@ -744,7 +750,7 @@ export default function PasarelaPago() {
                     </View>
                     {errors.mesExpiracion && <Text style={styles.errorText}>{errors.mesExpiracion}</Text>}
                   </View>
-                  <View style={styles.cardColumnLast}>
+                  <View style={[styles.cardColumnLast, isMobile && { width: '100%' }]}>
                     <Text style={styles.label}>Año de Expiración *</Text>
                     <View style={[styles.cardInput, errors.añoExpiracion && styles.cardInputError]}>
                       <TextInput
@@ -778,6 +784,8 @@ export default function PasarelaPago() {
                   placeholder="tu@email.com"
                   keyboardType="email-address"
                   placeholderTextColor={theme.greyMedium}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                 />
               </View>
               {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
@@ -794,6 +802,8 @@ export default function PasarelaPago() {
                   placeholder="+34 123 456 789"
                   keyboardType="phone-pad"
                   placeholderTextColor={theme.greyMedium}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                 />
               </View>
               {errors.telefono && <Text style={styles.errorText}>{errors.telefono}</Text>}
@@ -833,18 +843,17 @@ export default function PasarelaPago() {
           </FadeInSection>
 
           {/* Botones de Acción */}
-          <FadeInSection animationKey="action-buttons" style={styles.actionButtonsContainer}>
+          <FadeInSection animationKey="action-buttons" style={[styles.actionButtonsContainer, isMobile && { flexDirection: 'column', gap: 10, width: '100%' }]}>
             <TouchableOpacity
-              style={styles.backButton}
+              style={[styles.backButton, isMobile && { width: '100%', minWidth: undefined }]}
               onPress={() => router.back()}
             >
               <MaterialIcons name="arrow-back" size={20} color={theme.primaryColor} />
-              <Text style={styles.backButtonText}>Volver a Datos</Text>
+              <Text style={[styles.backButtonText, isMobile && { marginLeft: 0 }]}>Volver a Datos</Text>
             </TouchableOpacity>
-
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+            <Animated.View style={{ transform: [{ scale: pulseAnim }], width: isMobile ? '100%' : undefined }}>
               <TouchableOpacity
-                style={[styles.payButton, isLoading && styles.payButtonDisabled]}
+                style={[styles.payButton, isLoading && styles.payButtonDisabled, isMobile && { width: '100%', minWidth: undefined }]}
                 onPress={procesarPago}
                 disabled={isLoading}
               >
@@ -876,7 +885,7 @@ export default function PasarelaPago() {
                 )}
               </TouchableOpacity>
             </Animated.View>
-            </FadeInSection>
+          </FadeInSection>
           
           <Text style={styles.securityText}>
             🔒 Pago 100% seguro y encriptado
@@ -1147,6 +1156,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius,
     paddingHorizontal: spacing.medium,
     minHeight: 50,
+    overflow: 'hidden',
   },
   inputError: {
     borderColor: theme.error,
@@ -1156,7 +1166,11 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    width: '100%',
+    minWidth: 0,
+    flexShrink: 1,
     paddingVertical: Platform.OS === 'web' ? 12 : 10,
+    paddingHorizontal: 0,
     fontSize: 16,
     color: theme.dark,
     outlineStyle: Platform.OS === 'web' ? 'none' : undefined,
@@ -1176,9 +1190,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    padding: 12,
+    paddingVertical: 12,
+    paddingLeft: 12,
+    paddingRight: 40,
     fontSize: 16,
-    marginBottom: 12,
+    width: '100%',
+    minWidth: 0,
+    flexShrink: 1,
+    marginBottom: 0,
+    position: 'relative',
   },
   cardInputError: {
     borderColor: '#ff3b30',
@@ -1198,7 +1218,11 @@ const styles = StyleSheet.create({
   cardIcon: {
     position: 'absolute',
     right: 12,
-    top: 12,
+    top: '50%',
+    marginTop: -12,
+    width: 24,
+    height: 24,
+    zIndex: 2,
   },
   errorText: {
     color: '#ff3b30',

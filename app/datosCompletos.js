@@ -14,6 +14,7 @@ import {
   Animated,
   Easing,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -273,6 +274,8 @@ export default function DatosCompletosPage() {
   const [hasInitializedAnimals, setHasInitializedAnimals] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const isWeb = Platform.OS === 'web';
+  const { width } = useWindowDimensions();
+  const isMobile = width < 700;
   
   // Referencias para animaciones
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -280,6 +283,11 @@ export default function DatosCompletosPage() {
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
+
+  // Al principio del componente DatosCompletosPage (después de const isWeb, isMobile...)
+  const today = new Date();
+  const max18Date = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+  const max18DateString = max18Date.toISOString().split('T')[0];
 
   useEffect(() => {
     console.log("[DatosCompletos] useEffect ejecutándose");
@@ -808,7 +816,7 @@ export default function DatosCompletosPage() {
                   <View style={styles.cardGlow} />
                   {/* Los campos de nombre y apellidos se eliminan ya que se guardan en el registro */}
                   <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Tipo de Documento *</Text>
+                    <Text style={styles.label}>Tipo de Documento<Text style={{ color: theme.error, marginLeft: 2 }}>*</Text></Text>
                     <View style={styles.docTypeRowCustom}>
                       <Pressable
                         style={[styles.docTypeButtonPill, formData.tipoDocumento === 'DNI' && styles.docTypeButtonPillActive]}
@@ -828,7 +836,7 @@ export default function DatosCompletosPage() {
                   </View>
 
                   <View style={styles.inputContainer}>
-                    <Text style={styles.label}>{formData.tipoDocumento} *</Text>
+                    <Text style={styles.label}>{formData.tipoDocumento}<Text style={{ color: theme.error, marginLeft: 2 }}>*</Text></Text>
                     <View style={[styles.inputWrapper, errors.numeroDocumento && styles.inputError]}>
                       <MaterialIcons name={formData.tipoDocumento === 'DNI' ? "badge" : "credit-card"} size={20} color={theme.greyMedium} style={styles.inputIcon} />
                       <TextInput
@@ -844,7 +852,7 @@ export default function DatosCompletosPage() {
                   </View>
 
                   <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Fecha de Nacimiento *</Text>
+                    <Text style={styles.label}>Fecha de Nacimiento<Text style={{ color: theme.error, marginLeft: 2 }}>*</Text></Text>
                     {isWeb ? (
                       <View style={styles.dateInputContainer}>
                          <TouchableOpacity 
@@ -887,7 +895,7 @@ export default function DatosCompletosPage() {
                               handleInputChange('fechaNacimiento', '');
                             }
                           }}
-                          max={new Date().toISOString().split('T')[0]}
+                          max={max18DateString}
                           min="1900-01-01"
                           style={{ position: 'absolute', opacity: 0, width: 0, height: 0, top: 0, left: 0, zIndex: -1 }}
                         />
@@ -916,11 +924,11 @@ export default function DatosCompletosPage() {
                       <DateTimePicker
                         value={formData.fechaNacimiento && !isNaN(new Date(formData.fechaNacimiento).getTime()) 
                           ? new Date(formData.fechaNacimiento) 
-                          : new Date()}
+                          : max18Date}
                         mode="date"
                         display="default"
                         onChange={handleDateChange}
-                        maximumDate={new Date()}
+                        maximumDate={max18Date}
                         minimumDate={new Date(1900, 0, 1)}
                         locale="es-ES"
                       />
@@ -934,7 +942,7 @@ export default function DatosCompletosPage() {
                     
                     {/* Tipo de Vía */}
                     <View style={styles.inputContainer}>
-                      <Text style={styles.label}>Tipo de Vía *</Text>
+                      <Text style={styles.label}>Tipo de Vía<Text style={{ color: theme.error, marginLeft: 2 }}>*</Text></Text>
                       {isWeb ? (
                         <View style={[styles.inputWrapper, styles.selectWrapper, errors.tipoVia && styles.inputError]}>
                           <MaterialIcons name="signpost" size={20} color={theme.greyMedium} style={styles.inputIcon} />
@@ -962,7 +970,7 @@ export default function DatosCompletosPage() {
 
                     {/* Nombre de la Vía */}
                     <View style={styles.inputContainer}>
-                      <Text style={styles.label}>Nombre de la Vía *</Text>
+                      <Text style={styles.label}>Nombre de la Vía<Text style={{ color: theme.error, marginLeft: 2 }}>*</Text></Text>
                       <View style={[styles.inputWrapper, errors.nombreVia && styles.inputError]}>
                         <MaterialIcons name="edit-road" size={20} color={theme.greyMedium} style={styles.inputIcon} />
                         <TextInput
@@ -977,52 +985,111 @@ export default function DatosCompletosPage() {
                     </View>
 
                     {/* Fila con Número, Piso, Puerta */}
-                    <View style={styles.direccionRow}>
-                      <View style={[styles.inputContainer, styles.direccionRowItem]}>
-                        <Text style={styles.label}>Número *</Text>
-                        <View style={[styles.inputWrapper, errors.numero && styles.inputError]}>
-                          <MaterialIcons name="tag" size={20} color={theme.greyMedium} style={styles.inputIcon} />
-                          <TextInput
-                            style={styles.inputNoOutline}
-                            value={formData.numero}
-                            onChangeText={(value) => handleInputChange('numero', value)}
-                            placeholder="123"
-                            placeholderTextColor={theme.greyMedium}
-                          />
+                    {isMobile ? (
+                      <>
+                        <View style={{ flexDirection: 'row', gap: 10, marginBottom: spacing.small }}>
+                          <View style={[styles.inputContainer, { flex: 1 }]}> 
+                            <Text style={styles.label}>
+                              Nº<Text style={{ color: theme.error, marginLeft: 2 }}>*</Text>
+                            </Text>
+                            <View style={[styles.inputWrapper, errors.numero && styles.inputError]}>
+                              <MaterialIcons name="tag" size={20} color={theme.greyMedium} style={styles.inputIcon} />
+                              <TextInput
+                                style={styles.inputNoOutline}
+                                value={formData.numero}
+                                onChangeText={(value) => handleInputChange('numero', value)}
+                                placeholder={'Nº'}
+                                placeholderTextColor={theme.greyMedium}
+                              />
+                            </View>
+                            {errors.numero && <Text style={styles.errorText}>{errors.numero}</Text>}
+                          </View>
+                          <View style={[styles.inputContainer, { flex: 1 }]}> 
+                            <Text style={styles.label}>
+                              Piso<Text style={{ color: theme.error, marginLeft: 2 }}>*</Text>
+                            </Text>
+                            <View style={[styles.inputWrapper, errors.piso && styles.inputError]}>
+                              <MaterialIcons name="layers" size={20} color={theme.greyMedium} style={styles.inputIcon} />
+                              <TextInput
+                                style={styles.inputNoOutline}
+                                value={formData.piso}
+                                onChangeText={(value) => handleInputChange('piso', value)}
+                                placeholder={'Piso'}
+                                placeholderTextColor={theme.greyMedium}
+                              />
+                            </View>
+                            {errors.piso && <Text style={styles.errorText}>{errors.piso}</Text>}
+                          </View>
                         </View>
-                        {errors.numero && <Text style={styles.errorText}>{errors.numero}</Text>}
-                      </View>
-
-                      <View style={[styles.inputContainer, styles.direccionRowItem]}>
-                        <Text style={styles.label}>Piso *</Text>
-                        <View style={[styles.inputWrapper, errors.piso && styles.inputError]}>
-                          <MaterialIcons name="layers" size={20} color={theme.greyMedium} style={styles.inputIcon} />
-                          <TextInput
-                            style={styles.inputNoOutline}
-                            value={formData.piso}
-                            onChangeText={(value) => handleInputChange('piso', value)}
-                            placeholder="4º"
-                            placeholderTextColor={theme.greyMedium}
-                          />
+                        <View style={[styles.inputContainer, { width: '100%' }]}> 
+                          <Text style={styles.label}>
+                            Puerta<Text style={{ color: theme.error, marginLeft: 2 }}>*</Text>
+                          </Text>
+                          <View style={[styles.inputWrapper, errors.puerta && styles.inputError]}>
+                            <MaterialIcons name="door-front" size={20} color={theme.greyMedium} style={styles.inputIcon} />
+                            <TextInput
+                              style={styles.inputNoOutline}
+                              value={formData.puerta}
+                              onChangeText={(value) => handleInputChange('puerta', value)}
+                              placeholder={'Puerta'}
+                              placeholderTextColor={theme.greyMedium}
+                            />
+                          </View>
+                          {errors.puerta && <Text style={styles.errorText}>{errors.puerta}</Text>}
                         </View>
-                        {errors.piso && <Text style={styles.errorText}>{errors.piso}</Text>}
-                      </View>
-
-                      <View style={[styles.inputContainer, styles.direccionRowItem]}>
-                        <Text style={styles.label}>Puerta *</Text>
-                        <View style={[styles.inputWrapper, errors.puerta && styles.inputError]}>
-                          <MaterialIcons name="door-front" size={20} color={theme.greyMedium} style={styles.inputIcon} />
-                          <TextInput
-                            style={styles.inputNoOutline}
-                            value={formData.puerta}
-                            onChangeText={(value) => handleInputChange('puerta', value)}
-                            placeholder="A"
-                            placeholderTextColor={theme.greyMedium}
-                          />
+                      </>
+                    ) : (
+                      <View style={styles.direccionRow}>
+                        <View style={[styles.inputContainer, styles.direccionRowItem]}>
+                          <Text style={styles.label}>
+                            Número<Text style={{ color: theme.error, marginLeft: 2 }}>*</Text>
+                          </Text>
+                          <View style={[styles.inputWrapper, errors.numero && styles.inputError]}>
+                            <MaterialIcons name="tag" size={20} color={theme.greyMedium} style={styles.inputIcon} />
+                            <TextInput
+                              style={styles.inputNoOutline}
+                              value={formData.numero}
+                              onChangeText={(value) => handleInputChange('numero', value)}
+                              placeholder={'123'}
+                              placeholderTextColor={theme.greyMedium}
+                            />
+                          </View>
+                          {errors.numero && <Text style={styles.errorText}>{errors.numero}</Text>}
                         </View>
-                        {errors.puerta && <Text style={styles.errorText}>{errors.puerta}</Text>}
+                        <View style={[styles.inputContainer, styles.direccionRowItem]}>
+                          <Text style={styles.label}>
+                            Piso<Text style={{ color: theme.error, marginLeft: 2 }}>*</Text>
+                          </Text>
+                          <View style={[styles.inputWrapper, errors.piso && styles.inputError]}>
+                            <MaterialIcons name="layers" size={20} color={theme.greyMedium} style={styles.inputIcon} />
+                            <TextInput
+                              style={styles.inputNoOutline}
+                              value={formData.piso}
+                              onChangeText={(value) => handleInputChange('piso', value)}
+                              placeholder={'4º'}
+                              placeholderTextColor={theme.greyMedium}
+                            />
+                          </View>
+                          {errors.piso && <Text style={styles.errorText}>{errors.piso}</Text>}
+                        </View>
+                        <View style={[styles.inputContainer, styles.direccionRowItem]}>
+                          <Text style={styles.label}>
+                            Puerta<Text style={{ color: theme.error, marginLeft: 2 }}>*</Text>
+                          </Text>
+                          <View style={[styles.inputWrapper, errors.puerta && styles.inputError]}>
+                            <MaterialIcons name="door-front" size={20} color={theme.greyMedium} style={styles.inputIcon} />
+                            <TextInput
+                              style={styles.inputNoOutline}
+                              value={formData.puerta}
+                              onChangeText={(value) => handleInputChange('puerta', value)}
+                              placeholder={'A'}
+                              placeholderTextColor={theme.greyMedium}
+                            />
+                          </View>
+                          {errors.puerta && <Text style={styles.errorText}>{errors.puerta}</Text>}
+                        </View>
                       </View>
-                    </View>
+                    )}
 
                     {/* Escalera (Opcional) */}
                     <View style={styles.inputContainer}>
@@ -1041,7 +1108,7 @@ export default function DatosCompletosPage() {
                   </View>
 
                   <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Código Postal *</Text>
+                    <Text style={styles.label}>Código Postal<Text style={{ color: theme.error, marginLeft: 2 }}>*</Text></Text>
                     <View style={[styles.inputWrapper, errors.codigoPostal && styles.inputError]}>
                       <MaterialIcons name="local-post-office" size={20} color={theme.greyMedium} style={styles.inputIcon} />
                       <TextInput
@@ -1060,7 +1127,7 @@ export default function DatosCompletosPage() {
                   {isWeb && (
                     <>
                     <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Provincia *</Text>
+                        <Text style={styles.label}>Provincia<Text style={{ color: theme.error, marginLeft: 2 }}>*</Text></Text>
                         <View style={[styles.inputWrapper, styles.selectWrapper, errors.provincia && styles.inputError]}>
                         <MaterialIcons name="location-city" size={20} color={theme.greyMedium} style={styles.inputIcon} />
                         <select
@@ -1078,7 +1145,7 @@ export default function DatosCompletosPage() {
                     </View>
 
                     <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Comunidad Autónoma *</Text>
+                        <Text style={styles.label}>Comunidad Autónoma<Text style={{ color: theme.error, marginLeft: 2 }}>*</Text></Text>
                         <View style={[styles.inputWrapper, styles.selectWrapper, errors.comunidadAutonoma && styles.inputError]}>
                         <MaterialIcons name="map" size={20} color={theme.greyMedium} style={styles.inputIcon} />
                         <select
@@ -1135,7 +1202,7 @@ export default function DatosCompletosPage() {
                       <Text style={styles.petCardTitle}>{mascota.nombre || `Mascota ${index + 1}`}</Text>
                     </View>
                     <View style={styles.inputContainer}>
-                      <Text style={[styles.label, {color: theme.secondaryColor}]}>Número de Chip *</Text>
+                      <Text style={[styles.label, {color: theme.secondaryColor}]}>Número de Chip<Text style={{ color: theme.error, marginLeft: 2 }}>*</Text></Text>
                       <View style={[styles.inputWrapper, errors[`mascota_${index}`] && styles.inputError]}>
                         <MaterialIcons name="memory" size={20} color={theme.greyMedium} style={styles.inputIcon} />
                         <TextInput
@@ -1505,6 +1572,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
     textAlign: 'left',
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    whiteSpace: 'nowrap', // Para web
+    alignItems: 'center',
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -1537,11 +1608,14 @@ const styles = StyleSheet.create({
   inputNoOutline: {
     flex: 1,
     paddingVertical: Platform.OS === 'web' ? 12 : 10,
+    paddingHorizontal: Platform.OS === 'web' ? 0 : 2, // Añadido padding horizontal mínimo en móvil
     fontSize: 16,
     color: theme.dark,
     outlineStyle: Platform.OS === 'web' ? 'none' : undefined,
     borderWidth: 0,
     backgroundColor: 'transparent',
+    minWidth: 0, // Permite que el input no crezca más allá del contenedor
+    maxWidth: '100%', // Limita el ancho máximo
   },
   dateInputContainer: {
     width: '100%',

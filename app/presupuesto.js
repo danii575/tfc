@@ -714,10 +714,30 @@ export default function PresupuestoPage() {
       setOwnerErrors({...initialOwnerErrorsState});
   };
 
+  // Helper para saber si un animal está incompleto
+  const isAnimalIncompleto = (animal) => {
+    return (
+      !animal.tipo ||
+      !animal.sexo ||
+      !animal.edad ||
+      !animal.raza ||
+      animal.sexo === 'No especificado' ||
+      animal.edad === 'No especificado' ||
+      animal.raza === 'No especificado'
+    );
+  };
+
+  // Corregir navigateToEdit para que el lápiz lleve al paso correcto
   const navigateToEdit = (stepToEdit, animalIdx = null) => {
     resetAllErrorStates();
-    if (animalIdx !== null) setCurrentAnimalIndex(animalIdx);
-    setCurrentStep(stepToEdit);
+    if (stepToEdit === 1) {
+      setCurrentStep(3); // Ir a datos del dueño
+    } else if (animalIdx !== null) {
+      setCurrentAnimalIndex(animalIdx);
+      setCurrentStep(1); // Ir al formulario de esa mascota
+    } else {
+      setCurrentStep(stepToEdit);
+    }
     scrollToTop();
   };
   
@@ -755,6 +775,9 @@ export default function PresupuestoPage() {
         return;
       }
       setCurrentStep(4);
+    } else if (currentStep === 4) {
+      handleSubmit();
+      return;
     }
     scrollToTop();
   };
@@ -766,7 +789,16 @@ export default function PresupuestoPage() {
     else if (currentStep === 3) setCurrentStep('addOrContinue');
     else if (currentStep === 4) setCurrentStep(3);
     else if (currentStep === 0) {
-      if (currentAnimalIndex > 0) {
+      // Si el animal actual es el último y está incompleto, eliminarlo
+      if (
+        currentAnimalIndex === animals.length - 1 &&
+        animals.length > 1 &&
+        isAnimalIncompleto(animals[currentAnimalIndex])
+      ) {
+        setAnimals(prev => prev.slice(0, -1));
+        setCurrentAnimalIndex(currentAnimalIndex - 1);
+        setCurrentStep(1);
+      } else if (currentAnimalIndex > 0) {
         setCurrentAnimalIndex(currentAnimalIndex - 1);
         setCurrentStep(1);
       } else {
@@ -1108,11 +1140,14 @@ export default function PresupuestoPage() {
     </View>
   );
 
+  // Filtrar animales incompletos en la revisión
+  const animalesCompletos = animals.filter(animal => !isAnimalIncompleto(animal));
+
   const renderReview = () => { 
-    const animalDetails = animals.map((animal, index) => ({ 
+    const animalDetails = animalesCompletos.map((animal, index) => ({ 
       title: `Animal ${index + 1}: ${animal.nombre || "No especificado"}`, 
       icon: "paw-outline", 
-      onEdit: () => navigateToEdit(0, index), 
+      onEdit: () => navigateToEdit(0, animals.findIndex(a => a === animal)), 
       data: [ 
         { label: "Tipo", value: animal.tipo === 'otro' ? `Otro (${tipoExoticoOptions.find(opt => opt.value === animal.tipoExotico)?.label || animal.tipoExotico || 'N/A'})` : tipoAnimalOptions.find(opt => opt.value === animal.tipo)?.label }, 
         { label: "Sexo", value: sexoOptions.find(opt => opt.value === animal.sexo)?.label }, 
