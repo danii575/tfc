@@ -54,7 +54,7 @@ export default function PerfilUsuario() {
     comunidadAutonoma: datosCompletos.comunidadAutonoma || ''
   });
 
-  // Simulación de mascotas y facturas (reemplazar por datos reales de Firestore si existen)
+  // Simulación de mascotas y facturas
   const mascotas = userData?.mascotas || [
     { nombre: 'Luna', tipo: 'Perro', raza: 'Pomerania', chip: '123456789', poliza: 'PC-001', estado: 'Activa' },
     { nombre: 'Michi', tipo: 'Gato', raza: 'Siamés', chip: '987654321', poliza: 'PC-002', estado: 'Activa' },

@@ -5,6 +5,8 @@ import { View, ActivityIndicator } from 'react-native'; // Para el spinner de ca
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { app as firebaseApp, db } from '../firebase/firebaseConfig'; // Importar app y db
 import { doc, getDoc } from 'firebase/firestore';
+import ErrorBoundary from '../components/ErrorBoundary';
+import { initializeErrorHandling } from '../utils/errorHandler';
 
 // 1. Crear el Contexto de Autenticación
 const AuthContext = createContext(null);
@@ -92,27 +94,31 @@ export function AuthProvider({ children }) {
 
 // 3. Envolver tu Stack principal con AuthProvider
 export default function RootLayout() {
-  // Prevenir que la SplashScreen se oculte automáticamente hasta que sepamos el estado de auth
-  // SplashScreen.preventAutoHideAsync(); // Descomenta si usas expo-splash-screen
-
-  // useEffect(() => {
-  //   // Ocultar SplashScreen una vez que isLoadingAuth es false (o cuando estés listo)
-  //   // if (!isLoadingAuth) { // Necesitarías acceder a isLoadingAuth aquí si lo mueves fuera del provider
-  //   //   SplashScreen.hideAsync();
-  //   // }
-  // }, [isLoadingAuth]); // Necesitarías una forma de obtener isLoadingAuth aquí
+  // Inicializar el sistema de manejo de errores
+  useEffect(() => {
+    const restoreFetch = initializeErrorHandling();
+    
+    // Cleanup al desmontar el componente
+    return () => {
+      if (restoreFetch) {
+        restoreFetch();
+      }
+    };
+  }, []);
 
   return (
-    <AuthProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        {/* Tus pantallas se definen automáticamente por los archivos en 'app' */}
-        {/* Ejemplo de cómo podrías definir una pantalla específica si es necesario: */}
-        {/* <Stack.Screen name="index" /> */}
-        {/* <Stack.Screen name="login" /> */}
-        {/* <Stack.Screen name="registro" /> */}
-        {/* <Stack.Screen name="presupuesto" /> */}
-        {/* <Stack.Screen name="presupuestoFinal" /> */}
-      </Stack>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          {/* Tus pantallas se definen automáticamente por los archivos en 'app' */}
+          {/* Ejemplo de cómo podrías definir una pantalla específica si es necesario: */}
+          {/* <Stack.Screen name="index" /> */}
+          {/* <Stack.Screen name="login" /> */}
+          {/* <Stack.Screen name="registro" /> */}
+          {/* <Stack.Screen name="presupuesto" /> */}
+          {/* <Stack.Screen name="presupuestoFinal" /> */}
+        </Stack>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

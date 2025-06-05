@@ -24,7 +24,7 @@ import { doc, updateDoc, collection, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { loadStripe } from '@stripe/stripe-js';
 
-// Clave pública de Stripe (deberías obtenerla de tu cuenta de Stripe)
+// Clave pública de Stripe 
 const STRIPE_PUBLISHABLE_KEY = 'pk_test_51RSfbRQYSZMbABiaTC68nu8w7OSLhsZtFaurYBKwYIiA8GOawAY9MEoWQ6GOV0hAjuoFjFJI0jyGeNzlJtDiZ5yK00xxTGWwsl';
 
 // --- Definiciones de Tema ---
