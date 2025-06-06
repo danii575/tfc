@@ -54,11 +54,8 @@ export default function PerfilUsuario() {
     comunidadAutonoma: datosCompletos.comunidadAutonoma || ''
   });
 
-  // Simulación de mascotas y facturas
-  const mascotas = userData?.mascotas || [
-    { nombre: 'Luna', tipo: 'Perro', raza: 'Pomerania', chip: '123456789', poliza: 'PC-001', estado: 'Activa' },
-    { nombre: 'Michi', tipo: 'Gato', raza: 'Siamés', chip: '987654321', poliza: 'PC-002', estado: 'Activa' },
-  ];
+  // Solo mostrar mascotas reales, sin ejemplos
+  const mascotas = userData?.mascotas || [];
   const facturas = (userData?.mascotas || []).map((m, idx) => ({
     id: `F-${idx + 1}`,
     fecha: m.fechaAlta || '2024-06-01',
@@ -134,14 +131,13 @@ export default function PerfilUsuario() {
     }
   };
 
-  // Handler para eliminar mascota (solo muestra alerta y lleva a presupuesto)
+  // Handler para eliminar mascota (contactar por correo)
   const handleEliminarMascota = () => {
     Alert.alert(
-      'Eliminar mascota',
-      'Para eliminar una mascota, contacta con nosotros. ¿Quieres ir al apartado de presupuesto para solicitarlo?',
+      'Eliminar mascota del seguro',
+      'Para eliminar una mascota de tu póliza de seguro, necesitas contactar con nuestro equipo de atención al cliente.\n\nPor favor, envía un correo a:\nsoporte@petcareseguros.com\n\nIndica en el correo el nombre de la mascota que deseas eliminar y tu número de póliza.',
       [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Ir a Presupuesto', onPress: () => { router.push('/presupuesto'); } },
+        { text: 'Entendido', style: 'default' },
       ]
     );
   };

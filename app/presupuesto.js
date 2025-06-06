@@ -677,7 +677,7 @@ export default function PresupuestoPage() {
     if (animalToValidate.tipo === 'otro' && !animalToValidate.tipoExotico) { errors.tipoExotico = "Especifique tipo exótico."; isValid = false; }
     if (!animalToValidate.sexo) { errors.sexo = "Sexo es obligatorio."; isValid = false; }
     if (!animalToValidate.edad) { errors.edad = "Rango de edad es obligatorio."; isValid = false; }
-    if (!animalToValidate.raza.trim()) { errors.raza = "Raza es obligatoria."; isValid = false; }
+    if (animalToValidate.tipo !== 'otro' && !animalToValidate.raza.trim()) { errors.raza = "Raza es obligatoria."; isValid = false; }
     
     setCurrentAnimalErrors(errors);
     if (!isValid && showAlertOnError) {
@@ -720,10 +720,10 @@ export default function PresupuestoPage() {
       !animal.tipo ||
       !animal.sexo ||
       !animal.edad ||
-      !animal.raza ||
+      (animal.tipo !== 'otro' && !animal.raza) ||
       animal.sexo === 'No especificado' ||
       animal.edad === 'No especificado' ||
-      animal.raza === 'No especificado'
+      (animal.tipo !== 'otro' && animal.raza === 'No especificado')
     );
   };
 
@@ -1016,23 +1016,13 @@ export default function PresupuestoPage() {
           />
         )}
         {currentAnimalData.tipo === 'otro' && (
-          <>
-            <FormPicker
-              label="Tipo de Animal Exótico"
-              selectedValue={currentAnimalData.tipoExotico}
-              onValueChange={value => handleAnimalChange('tipoExotico', value)}
-              options={tipoExoticoOptions}
-              errorText={currentAnimalErrors.tipoExotico}
-            />
-            <FormInput
-              label="Raza o Especie"
-              value={currentAnimalData.raza}
-              onChangeText={text => handleAnimalChange('raza', text)}
-              errorText={currentAnimalErrors.raza}
-              placeholder="Especifique la raza o especie..."
-              isOptional={true}
-            />
-          </>
+          <FormPicker
+            label="Tipo de Animal Exótico"
+            selectedValue={currentAnimalData.tipoExotico}
+            onValueChange={value => handleAnimalChange('tipoExotico', value)}
+            options={tipoExoticoOptions}
+            errorText={currentAnimalErrors.tipoExotico}
+          />
         )}
       </FormCard>
     </FadeInSection>
@@ -1250,13 +1240,13 @@ export default function PresupuestoPage() {
               title="Añadir otra mascota"
               onPress={handleAddAnotherAnimal}
               iconName="add"
-              style={{ minWidth: 180, marginRight: 8 }}
+              style={mobileStyles.addOrContinueButton}
             />
             <FormButton
               title="Continuar"
               onPress={handleContinueToOwner}
               iconName="arrow-forward"
-              style={{ minWidth: 180, marginLeft: 8 }}
+              style={mobileStyles.addOrContinueButton}
             />
           </View>
         </View>
@@ -1270,13 +1260,13 @@ export default function PresupuestoPage() {
               title="Añadir otra mascota"
               onPress={handleAddAnotherAnimal}
               iconName="add"
-              style={{ minWidth: 180, marginRight: 8 }}
+              style={{ minWidth: 160, maxWidth: 180 }}
             />
             <FormButton
               title="Continuar"
               onPress={handleContinueToOwner}
               iconName="arrow-forward"
-              style={{ minWidth: 180, marginLeft: 8 }}
+              style={{ minWidth: 160, maxWidth: 180 }}
             />
           </View>
         </FormCard>
