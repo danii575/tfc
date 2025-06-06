@@ -128,7 +128,7 @@ const Header = (props) => {
           currentUser ? (
             <>
               <TouchableOpacity style={{flexDirection: 'row', alignItems: 'center', marginRight: 12}} onPress={() => router.push('/PerfilUsuario')}>
-                <MaterialIcons name="person" size={24} color={COLORS.primary} style={{marginRight: 6}} />
+                <MaterialIcons name="account-circle" size={28} color={COLORS.primary} style={{marginRight: 6}} />
                 <Text style={styles.userNameText} numberOfLines={1}>
                   {userData?.nombreCompleto || userData?.nombre || currentUser.displayName || currentUser.email?.split('@')[0]}
                 </Text>

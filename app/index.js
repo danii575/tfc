@@ -1737,7 +1737,7 @@ export default function IndexPage() {
           onNavigateToPlans={handleScrollToPlans}
           onNavigateToAbout={handleScrollToAbout}
           onNavigateToServices={handleScrollToServices}
-          onNavigateToContact={handleScrollToContact} // Esto haría scroll a sí mismo, quizá innecesario aquí
+          onNavigateToContact={handleScrollToContact} 
         />
       </ScrollView>
     </View>

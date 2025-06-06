@@ -6,6 +6,7 @@ import { getAuth, updateEmail, updateProfile } from 'firebase/auth';
 import { db } from '../firebase/firebaseConfig';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useAuth } from './_layout';
+import { Picker } from '@react-native-picker/picker';
 
 const theme = {
   primaryColor: '#2A9D8F',
@@ -25,14 +26,48 @@ const sections = [
   { key: 'soporte', label: 'Soporte', icon: 'help-outline' },
 ];
 
+// Opciones válidas para tipo de documento
+const tipoDocumentoOptions = [
+  { label: 'DNI', value: 'DNI' },
+  { label: 'NIE', value: 'NIE' },
+  { label: 'Pasaporte', value: 'Pasaporte' },
+];
+
+// Opciones para tipo de vía
+const tipoViaOptions = [
+  { label: 'Calle', value: 'Calle' },
+  { label: 'Avenida', value: 'Avenida' },
+  { label: 'Plaza', value: 'Plaza' },
+  { label: 'Camino', value: 'Camino' },
+  { label: 'Carretera', value: 'Carretera' },
+  { label: 'Paseo', value: 'Paseo' },
+  { label: 'Ronda', value: 'Ronda' },
+  { label: 'Travesía', value: 'Travesía' },
+  { label: 'Urbanización', value: 'Urbanización' },
+];
+
+// Opciones para provincias
+const provinciasOptions = [
+  { label: 'Álava', value: 'Álava' }, { label: 'Albacete', value: 'Albacete' }, { label: 'Alicante', value: 'Alicante' }, { label: 'Almería', value: 'Almería' }, { label: 'Asturias', value: 'Asturias' }, { label: 'Ávila', value: 'Ávila' }, { label: 'Badajoz', value: 'Badajoz' }, { label: 'Barcelona', value: 'Barcelona' }, { label: 'Burgos', value: 'Burgos' }, { label: 'Cáceres', value: 'Cáceres' }, { label: 'Cádiz', value: 'Cádiz' }, { label: 'Cantabria', value: 'Cantabria' }, { label: 'Castellón', value: 'Castellón' }, { label: 'Ciudad Real', value: 'Ciudad Real' }, { label: 'Córdoba', value: 'Córdoba' }, { label: 'Cuenca', value: 'Cuenca' }, { label: 'Girona', value: 'Girona' }, { label: 'Granada', value: 'Granada' }, { label: 'Guadalajara', value: 'Guadalajara' }, { label: 'Guipúzcoa', value: 'Guipúzcoa' }, { label: 'Huelva', value: 'Huelva' }, { label: 'Huesca', value: 'Huesca' }, { label: 'Illes Balears', value: 'Illes Balears' }, { label: 'Jaén', value: 'Jaén' }, { label: 'A Coruña', value: 'A Coruña' }, { label: 'La Rioja', value: 'La Rioja' }, { label: 'Las Palmas', value: 'Las Palmas' }, { label: 'León', value: 'León' }, { label: 'Lleida', value: 'Lleida' }, { label: 'Lugo', value: 'Lugo' }, { label: 'Madrid', value: 'Madrid' }, { label: 'Málaga', value: 'Málaga' }, { label: 'Murcia', value: 'Murcia' }, { label: 'Navarra', value: 'Navarra' }, { label: 'Ourense', value: 'Ourense' }, { label: 'Palencia', value: 'Palencia' }, { label: 'Pontevedra', value: 'Pontevedra' }, { label: 'Salamanca', value: 'Salamanca' }, { label: 'Santa Cruz de Tenerife', value: 'Santa Cruz de Tenerife' }, { label: 'Segovia', value: 'Segovia' }, { label: 'Sevilla', value: 'Sevilla' }, { label: 'Soria', value: 'Soria' }, { label: 'Tarragona', value: 'Tarragona' }, { label: 'Teruel', value: 'Teruel' }, { label: 'Toledo', value: 'Toledo' }, { label: 'Valencia', value: 'Valencia' }, { label: 'Valladolid', value: 'Valladolid' }, { label: 'Vizcaya', value: 'Vizcaya' }, { label: 'Zamora', value: 'Zamora' }, { label: 'Zaragoza', value: 'Zaragoza' }
+];
+
+// Opciones para comunidades autónomas
+const comunidadesOptions = [
+  { label: 'Andalucía', value: 'Andalucía' }, { label: 'Aragón', value: 'Aragón' }, { label: 'Asturias', value: 'Asturias' }, { label: 'Baleares', value: 'Baleares' }, { label: 'Canarias', value: 'Canarias' }, { label: 'Cantabria', value: 'Cantabria' }, { label: 'Castilla y León', value: 'Castilla y León' }, { label: 'Castilla-La Mancha', value: 'Castilla-La Mancha' }, { label: 'Cataluña', value: 'Cataluña' }, { label: 'Comunidad Valenciana', value: 'Comunidad Valenciana' }, { label: 'Extremadura', value: 'Extremadura' }, { label: 'Galicia', value: 'Galicia' }, { label: 'Madrid', value: 'Madrid' }, { label: 'Murcia', value: 'Murcia' }, { label: 'Navarra', value: 'Navarra' }, { label: 'País Vasco', value: 'País Vasco' }, { label: 'La Rioja', value: 'La Rioja' }
+];
+
 export default function PerfilUsuario() {
   const router = useRouter();
   const { currentUser, userData, isLoadingAuth } = useAuth();
   const [activeSection, setActiveSection] = useState('datos');
-  const [editMode, setEditMode] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [editModePersonal, setEditModePersonal] = useState(false);
+  const [editModeDireccion, setEditModeDireccion] = useState(false);
+  const [loadingPersonal, setLoadingPersonal] = useState(false);
+  const [loadingDireccion, setLoadingDireccion] = useState(false);
   const { width } = useWindowDimensions();
   const isMobile = width < 700;
+  const [originalForm, setOriginalForm] = useState(null);
+  const [personalError, setPersonalError] = useState('');
 
   // Añadir campos de datosCompletos
   const datosCompletos = userData?.datosCompletos || {};
@@ -93,8 +128,25 @@ export default function PerfilUsuario() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = async () => {
-    setLoading(true);
+  // Función de validación de documento
+  function validarDocumento(tipo, numero) {
+    if (tipo === 'DNI') {
+      return /^[0-9]{8}[A-Za-z]$/.test(numero);
+    } else if (tipo === 'NIE') {
+      return /^[XYZ][0-9]{7}[A-Za-z]$/.test(numero);
+    } else if (tipo === 'Pasaporte') {
+      return /^[A-Za-z0-9]{6,}$/.test(numero);
+    }
+    return false;
+  }
+
+  const handleSavePersonal = async () => {
+    setPersonalError('');
+    if (!validarDocumento(form.tipoDocumento, form.numeroDocumento)) {
+      setPersonalError('El número de documento no es válido para el tipo seleccionado.');
+      return;
+    }
+    setLoadingPersonal(true);
     try {
       const auth = getAuth();
       if (form.email !== currentUser.email) {
@@ -106,9 +158,30 @@ export default function PerfilUsuario() {
           nombreCompleto: form.nombre,
           telefono: form.telefono,
           datosCompletos: {
+            ...userData.datosCompletos,
             tipoDocumento: form.tipoDocumento,
             numeroDocumento: form.numeroDocumento,
             fechaNacimiento: form.fechaNacimiento,
+          },
+          ultimaActualizacion: new Date().toISOString(),
+        });
+      }
+      Alert.alert('Datos actualizados', 'Tus datos personales se han guardado correctamente.');
+      setEditModePersonal(false);
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudieron guardar los cambios.');
+    } finally {
+      setLoadingPersonal(false);
+    }
+  };
+
+  const handleSaveDireccion = async () => {
+    setLoadingDireccion(true);
+    try {
+      if (userData?.uid) {
+        await updateDoc(doc(db, 'usuarios', userData.uid), {
+          datosCompletos: {
+            ...userData.datosCompletos,
             tipoVia: form.tipoVia,
             nombreVia: form.nombreVia,
             numero: form.numero,
@@ -122,12 +195,12 @@ export default function PerfilUsuario() {
           ultimaActualizacion: new Date().toISOString(),
         });
       }
-      Alert.alert('Datos actualizados', 'Tus datos se han guardado correctamente.');
-      setEditMode(false);
+      Alert.alert('Datos actualizados', 'Tu dirección se ha guardado correctamente.');
+      setEditModeDireccion(false);
     } catch (error) {
       Alert.alert('Error', error.message || 'No se pudieron guardar los cambios.');
     } finally {
-      setLoading(false);
+      setLoadingDireccion(false);
     }
   };
 
@@ -170,78 +243,180 @@ export default function PerfilUsuario() {
       </View>
       <ScrollView contentContainerStyle={styles.contentContainer}>
         {activeSection === 'datos' && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Datos personales</Text>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nombre completo</Text>
-              <TextInput
-                style={[styles.input, !editMode && styles.inputDisabled]}
-                value={form.nombre}
-                onChangeText={text => handleChange('nombre', text)}
-                editable={editMode}
-              />
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Correo electrónico</Text>
-              <TextInput
-                style={[styles.input, !editMode && styles.inputDisabled]}
-                value={form.email}
-                onChangeText={text => handleChange('email', text)}
-                editable={editMode}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Teléfono</Text>
-              <TextInput
-                style={[styles.input, !editMode && styles.inputDisabled]}
-                value={form.telefono}
-                onChangeText={text => handleChange('telefono', text)}
-                editable={editMode}
-                keyboardType="phone-pad"
-              />
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Tipo de Documento</Text>
-              <TextInput style={[styles.input, !editMode && styles.inputDisabled]} value={form.tipoDocumento} onChangeText={text => handleChange('tipoDocumento', text)} editable={editMode} />
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Número de Documento</Text>
-              <TextInput style={[styles.input, !editMode && styles.inputDisabled]} value={form.numeroDocumento} onChangeText={text => handleChange('numeroDocumento', text)} editable={editMode} />
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Fecha de Nacimiento</Text>
-              <TextInput style={[styles.input, !editMode && styles.inputDisabled]} value={form.fechaNacimiento} onChangeText={text => handleChange('fechaNacimiento', text)} editable={editMode} />
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Dirección</Text>
-              <TextInput style={[styles.input, !editMode && styles.inputDisabled]} value={form.tipoVia} onChangeText={text => handleChange('tipoVia', text)} editable={editMode} placeholder="Tipo de vía" />
-              <TextInput style={[styles.input, !editMode && styles.inputDisabled]} value={form.nombreVia} onChangeText={text => handleChange('nombreVia', text)} editable={editMode} placeholder="Nombre de la vía" />
-              <TextInput style={[styles.input, !editMode && styles.inputDisabled]} value={form.numero} onChangeText={text => handleChange('numero', text)} editable={editMode} placeholder="Número" />
-              <TextInput style={[styles.input, !editMode && styles.inputDisabled]} value={form.piso} onChangeText={text => handleChange('piso', text)} editable={editMode} placeholder="Piso" />
-              <TextInput style={[styles.input, !editMode && styles.inputDisabled]} value={form.puerta} onChangeText={text => handleChange('puerta', text)} editable={editMode} placeholder="Puerta" />
-              <TextInput style={[styles.input, !editMode && styles.inputDisabled]} value={form.escalera} onChangeText={text => handleChange('escalera', text)} editable={editMode} placeholder="Escalera" />
-              <TextInput style={[styles.input, !editMode && styles.inputDisabled]} value={form.codigoPostal} onChangeText={text => handleChange('codigoPostal', text)} editable={editMode} placeholder="Código Postal" />
-              <TextInput style={[styles.input, !editMode && styles.inputDisabled]} value={form.provincia} onChangeText={text => handleChange('provincia', text)} editable={editMode} placeholder="Provincia" />
-              <TextInput style={[styles.input, !editMode && styles.inputDisabled]} value={form.comunidadAutonoma} onChangeText={text => handleChange('comunidadAutonoma', text)} editable={editMode} placeholder="Comunidad Autónoma" />
-            </View>
-            {editMode ? (
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
-                <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={loading}>
-                  <Text style={styles.saveButtonText}>{loading ? 'Guardando...' : 'Guardar'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.cancelButton} onPress={() => setEditMode(false)}>
-                  <Text style={styles.cancelButtonText}>Cancelar</Text>
-                </TouchableOpacity>
+          <>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Datos Personales</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Nombre completo</Text>
+                <TextInput
+                  style={[styles.input, !editModePersonal && styles.inputDisabled]}
+                  value={form.nombre}
+                  onChangeText={text => handleChange('nombre', text)}
+                  editable={editModePersonal}
+                />
               </View>
-            ) : (
-              <TouchableOpacity style={styles.editButton} onPress={() => setEditMode(true)}>
-                <MaterialIcons name="edit" size={20} color={theme.primaryColor} />
-                <Text style={styles.editButtonText}>Editar</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Correo electrónico</Text>
+                <TextInput
+                  style={[styles.input, !editModePersonal && styles.inputDisabled]}
+                  value={form.email}
+                  onChangeText={text => handleChange('email', text)}
+                  editable={editModePersonal}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Teléfono</Text>
+                <TextInput
+                  style={[styles.input, !editModePersonal && styles.inputDisabled]}
+                  value={form.telefono}
+                  onChangeText={text => handleChange('telefono', text)}
+                  editable={editModePersonal}
+                  keyboardType="phone-pad"
+                />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Tipo de Documento</Text>
+                <View style={[styles.input, { padding: 0, justifyContent: 'center', height: 40 }]}>
+                  <Picker
+                    selectedValue={form.tipoDocumento}
+                    onValueChange={value => handleChange('tipoDocumento', value)}
+                    enabled={editModePersonal}
+                    style={{ color: editModePersonal ? theme.dark : '#888', width: '100%', height: 40 }}
+                    itemStyle={{ fontSize: 15 }}
+                    dropdownIconColor={theme.primaryColor}
+                  >
+                    <Picker.Item label="Selecciona tipo de documento" value="" />
+                    {tipoDocumentoOptions.map(opt => (
+                      <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Número de Documento</Text>
+                <TextInput style={[styles.input, !editModePersonal && styles.inputDisabled]} value={form.numeroDocumento} onChangeText={text => handleChange('numeroDocumento', text)} editable={editModePersonal} />
+                {personalError ? (
+                  <Text style={{ color: theme.errorRed, fontSize: 13, marginTop: 4 }}>{personalError}</Text>
+                ) : null}
+              </View>
+              
+              {editModePersonal ? (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
+                  <TouchableOpacity style={styles.saveButton} onPress={handleSavePersonal} disabled={loadingPersonal}>
+                    <Text style={styles.saveButtonText}>{loadingPersonal ? 'Guardando...' : 'Guardar'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.cancelButton} onPress={() => { setForm(originalForm); setEditModePersonal(false); setPersonalError(''); }}>
+                    <Text style={styles.cancelButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.editButton} onPress={() => { setOriginalForm(form); setEditModePersonal(true); }}>
+                  <MaterialIcons name="edit" size={20} color={theme.primaryColor} />
+                  <Text style={styles.editButtonText}>Editar</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Dirección</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Tipo de Vía</Text>
+                <View style={[styles.input, { padding: 0, justifyContent: 'center', height: 40 }]}>
+                  <Picker
+                    selectedValue={form.tipoVia}
+                    onValueChange={value => handleChange('tipoVia', value)}
+                    enabled={editModeDireccion}
+                    style={{ color: editModeDireccion ? theme.dark : '#888', width: '100%', height: 40 }}
+                    itemStyle={{ fontSize: 15 }}
+                    dropdownIconColor={theme.primaryColor}
+                  >
+                    <Picker.Item label="Selecciona tipo de vía" value="" />
+                    {tipoViaOptions.map(opt => (
+                      <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Nombre de la Vía</Text>
+                <TextInput style={[styles.input, !editModeDireccion && styles.inputDisabled]} value={form.nombreVia} onChangeText={text => handleChange('nombreVia', text)} editable={editModeDireccion} placeholder="Nombre de la vía" />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Número</Text>
+                <TextInput style={[styles.input, !editModeDireccion && styles.inputDisabled]} value={form.numero} onChangeText={text => handleChange('numero', text)} editable={editModeDireccion} placeholder="Número" />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Piso</Text>
+                <TextInput style={[styles.input, !editModeDireccion && styles.inputDisabled]} value={form.piso} onChangeText={text => handleChange('piso', text)} editable={editModeDireccion} placeholder="Piso" />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Puerta</Text>
+                <TextInput style={[styles.input, !editModeDireccion && styles.inputDisabled]} value={form.puerta} onChangeText={text => handleChange('puerta', text)} editable={editModeDireccion} placeholder="Puerta" />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Escalera</Text>
+                <TextInput style={[styles.input, !editModeDireccion && styles.inputDisabled]} value={form.escalera} onChangeText={text => handleChange('escalera', text)} editable={editModeDireccion} placeholder="Escalera" />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Código Postal</Text>
+                <TextInput style={[styles.input, !editModeDireccion && styles.inputDisabled]} value={form.codigoPostal} onChangeText={text => handleChange('codigoPostal', text)} editable={editModeDireccion} placeholder="Código Postal" />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Provincia</Text>
+                <View style={[styles.input, { padding: 0, justifyContent: 'center', height: 40 }]}>
+                  <Picker
+                    selectedValue={form.provincia}
+                    onValueChange={value => handleChange('provincia', value)}
+                    enabled={editModeDireccion}
+                    style={{ color: editModeDireccion ? theme.dark : '#888', width: '100%', height: 40 }}
+                    itemStyle={{ fontSize: 15 }}
+                    dropdownIconColor={theme.primaryColor}
+                  >
+                    <Picker.Item label="Selecciona provincia" value="" />
+                    {provinciasOptions.map(opt => (
+                      <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Comunidad Autónoma</Text>
+                <View style={[styles.input, { padding: 0, justifyContent: 'center', height: 40 }]}>
+                  <Picker
+                    selectedValue={form.comunidadAutonoma}
+                    onValueChange={value => handleChange('comunidadAutonoma', value)}
+                    enabled={editModeDireccion}
+                    style={{ color: editModeDireccion ? theme.dark : '#888', width: '100%', height: 40 }}
+                    itemStyle={{ fontSize: 15 }}
+                    dropdownIconColor={theme.primaryColor}
+                  >
+                    <Picker.Item label="Selecciona comunidad autónoma" value="" />
+                    {comunidadesOptions.map(opt => (
+                      <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+              
+              {editModeDireccion ? (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
+                  <TouchableOpacity style={styles.saveButton} onPress={handleSaveDireccion} disabled={loadingDireccion}>
+                    <Text style={styles.saveButtonText}>{loadingDireccion ? 'Guardando...' : 'Guardar'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.cancelButton} onPress={() => setEditModeDireccion(false)}>
+                    <Text style={styles.cancelButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.editButton} onPress={() => setEditModeDireccion(true)}>
+                  <MaterialIcons name="edit" size={20} color={theme.primaryColor} />
+                  <Text style={styles.editButtonText}>Editar</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </>
         )}
         {activeSection === 'pagos' && (
           <View style={styles.card}>

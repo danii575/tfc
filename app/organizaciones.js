@@ -87,7 +87,7 @@ const ORGANIZACIONES = [
     nombre: 'APDDA',
     descripcion: 'Asociación Parlamentaria en Defensa de los Derechos de los Animales. Impulsan leyes y políticas públicas para la protección animal.',
     imagen: require('../assets/images/apdda.jpg'),
-    url: 'https://apdda.es/'
+    url: 'http://www.apdda.es'
   },
   {
     id: 'faada',
@@ -101,7 +101,7 @@ const ORGANIZACIONES = [
     nombre: 'Affiniti Foundation',
     descripcion: 'Fundación dedicada a mejorar la vida de los animales a través de la innovación y la tecnología. Colaboran con ONGs y centros de investigación internacionales.',
     imagen: require('../assets/images/affiniti.png'),
-    url: 'https://affinitifoundation.org/'
+    url: 'https://www.fundacion-affinity.org/es/la-fundacion'
   }
 ];
 
@@ -307,12 +307,13 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   content: {
-    width: Platform.OS === 'web' ? '100%' : '100vw',
+    width: Platform.OS === 'web' ? '100%' : '100%',
     maxWidth: Platform.OS === 'web' ? 1200 : undefined,
     alignItems: 'center',
     padding: Platform.OS === 'web' ? 24 : 0,
     marginLeft: Platform.OS === 'web' ? 'auto' : 0,
     marginRight: Platform.OS === 'web' ? 'auto' : 0,
+    minHeight: Platform.OS === 'web' ? undefined : 'auto',
   },
   title: {
     fontSize: 34,
@@ -333,24 +334,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     display: 'flex',
-    paddingHorizontal: 0,
+    paddingHorizontal: Platform.OS === 'web' ? 20 : 16,
+    paddingVertical: 20,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 32,
+    alignItems: 'flex-start',
+    marginBottom: Platform.OS === 'web' ? 48 : 32,
     width: '100%',
     display: 'flex',
+    gap: Platform.OS === 'web' ? 20 : 0,
   },
   cardWrapper: {
     alignItems: 'center',
-    marginHorizontal: Platform.OS === 'web' ? 16 : 0,
-    marginBottom: 0,
-    width: Platform.OS === 'web' ? 460 : '100vw',
-    maxWidth: Platform.OS === 'web' ? 460 : '100vw',
+    marginHorizontal: Platform.OS === 'web' ? 0 : 16,
+    marginBottom: Platform.OS === 'web' ? 0 : 24,
+    width: Platform.OS === 'web' ? 340 : '100%',
+    maxWidth: Platform.OS === 'web' ? 340 : '100%',
     alignSelf: 'center',
     backgroundColor: 'transparent',
+    flex: Platform.OS === 'web' ? 1 : 0,
+    minWidth: Platform.OS === 'web' ? 320 : undefined,
     transitionProperty: Platform.OS === 'web' ? 'box-shadow, transform, filter' : undefined,
     transitionDuration: Platform.OS === 'web' ? '0.25s' : undefined,
   },
@@ -358,10 +363,11 @@ const styles = StyleSheet.create({
     width: Platform.OS === 'web' ? 84 : 60,
     height: Platform.OS === 'web' ? 84 : 60,
     borderRadius: Platform.OS === 'web' ? 42 : 30,
-    marginBottom: Platform.OS === 'web' ? -42 : -30,
+    marginBottom: Platform.OS === 'web' ? -36 : -25,
     zIndex: 2,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'white',
   },
   imageRedonda: {
     width: Platform.OS === 'web' ? 78 : 54,
@@ -373,13 +379,13 @@ const styles = StyleSheet.create({
   cardGradient: {
     flex: 1,
     width: '100%',
-    minHeight: Platform.OS === 'web' ? 280 : undefined,
+    minHeight: Platform.OS === 'web' ? 300 : 240,
     borderRadius: theme.borderRadius,
-    paddingTop: Platform.OS === 'web' ? 60 : 32,
-    paddingBottom: Platform.OS === 'web' ? 24 : 14,
-    paddingHorizontal: Platform.OS === 'web' ? 20 : 10,
+    paddingTop: Platform.OS === 'web' ? 54 : 36,
+    paddingBottom: Platform.OS === 'web' ? 28 : 20,
+    paddingHorizontal: Platform.OS === 'web' ? 24 : 16,
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     backgroundColor: 'transparent',
     overflow: 'hidden',
     ...(Platform.OS === 'web' && { boxSizing: 'border-box' }),
