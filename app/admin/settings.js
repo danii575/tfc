@@ -146,12 +146,6 @@ export default function AdminSettings() {
           <MaterialIcons name="arrow-back" size={24} color={theme.dark} />
         </TouchableOpacity>
         <Text style={styles.title}>Configuración</Text>
-        <TouchableOpacity
-          style={{marginLeft: 'auto', backgroundColor: theme.primaryColor, padding: 8, borderRadius: 8}}
-          onPress={() => router.push('/admin')}
-        >
-          <Text style={{color: theme.white, fontWeight: 'bold'}}>Menú principal</Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content}>

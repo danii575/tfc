@@ -69,7 +69,19 @@ export default function RegistroScreen() {
     password: '',
     confirmPassword: '',
     telefono: '',
-    aceptaTerminos: false
+    aceptaTerminos: false,
+    tipoDocumento: '',
+    numeroDocumento: '',
+    fechaNacimiento: '',
+    tipoVia: '',
+    nombreVia: '',
+    numero: '',
+    piso: '',
+    puerta: '',
+    escalera: '',
+    codigoPostal: '',
+    provincia: '',
+    comunidadAutonoma: ''
   });
   
   const [errors, setErrors] = useState({});
@@ -94,7 +106,19 @@ export default function RegistroScreen() {
           primerApellido: ownerData?.primerApellido || '',
           segundoApellido: ownerData?.segundoApellido || '',
           email: ownerData?.email || '',
-          telefono: ownerData?.telefono || ''
+          telefono: ownerData?.telefono || '',
+          tipoDocumento: ownerData?.tipoDocumento || '',
+          numeroDocumento: ownerData?.numeroDocumento || '',
+          fechaNacimiento: ownerData?.fechaNacimiento || '',
+          tipoVia: ownerData?.tipoVia || '',
+          nombreVia: ownerData?.nombreVia || '',
+          numero: ownerData?.numero || '',
+          piso: ownerData?.piso || '',
+          puerta: ownerData?.puerta || '',
+          escalera: ownerData?.escalera || '',
+          codigoPostal: ownerData?.codigoPostal || '',
+          provincia: ownerData?.provincia || '',
+          comunidadAutonoma: ownerData?.comunidadAutonoma || ''
         }));
       } catch (error) {
         console.error("[RegistroScreen] Error inesperado en pre-relleno:", error);
@@ -193,7 +217,21 @@ export default function RegistroScreen() {
         telefono: formData.telefono,
         fechaRegistro: new Date().toISOString(),
         ultimaActualizacion: new Date().toISOString(),
-        role: 'user'
+        role: 'user',
+        datosCompletos: {
+          tipoDocumento: formData.tipoDocumento || '',
+          numeroDocumento: formData.numeroDocumento || '',
+          fechaNacimiento: formData.fechaNacimiento || '',
+          tipoVia: formData.tipoVia || '',
+          nombreVia: formData.nombreVia || '',
+          numero: formData.numero || '',
+          piso: formData.piso || '',
+          puerta: formData.puerta || '',
+          escalera: formData.escalera || '',
+          codigoPostal: formData.codigoPostal || '',
+          provincia: formData.provincia || '',
+          comunidadAutonoma: formData.comunidadAutonoma || ''
+        }
       };
       
       console.log("[handleRegister] Datos a guardar:", userDocData);

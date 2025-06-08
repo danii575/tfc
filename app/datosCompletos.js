@@ -24,7 +24,7 @@ import { FadeInSection } from '../components/FadeInSection';
 import { useAuth } from './_layout';
 import provincias from '../data/provincias.json';
 import comunidades from '../data/comunidades.json';
-import { doc, updateDoc, collection, setDoc, addDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, setDoc, addDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { updateProfile } from 'firebase/auth';
 //hola 
@@ -294,23 +294,19 @@ export default function DatosCompletosPage() {
     console.log("[DatosCompletos] Parámetros recibidos:", params);
     console.log("[DatosCompletos] hasInitializedAnimals:", hasInitializedAnimals);
     console.log("[DatosCompletos] isInitializing:", isInitializing);
-
     // Evitar múltiples inicializaciones simultáneas
     if (isInitializing) {
       console.log("[DatosCompletos] Ya se está inicializando, saltando...");
       return;
     }
-
     // Manejo del plan seleccionado
     if (params.selectedPlanId && params.planNombre) {
       const planSeleccionado = {
         id: params.selectedPlanId,
         nombre: params.planNombre,
-        precio: parseFloat(params.precioEstimado?.replace(/[^\d.,]/g, '').replace(',', '.')) || 0
+        precio: parseFloat(params.precioEstimado?.replace(/[^0-9.,]/g, '').replace(',', '.')) || 0
       };
-      
       setFormData(prev => {
-        // Solo actualizar si es diferente para evitar bucles
         if (JSON.stringify(prev.planSeleccionado) !== JSON.stringify(planSeleccionado)) {
           console.log("[DatosCompletos] Actualizando plan seleccionado:", planSeleccionado);
           return { ...prev, planSeleccionado: planSeleccionado };
@@ -318,7 +314,43 @@ export default function DatosCompletosPage() {
         return prev;
       });
     }
-
+    // Refuerzo: inicialización robusta de mascotas
+    if (params.animals && !hasInitializedAnimals) {
+      setIsInitializing(true);
+      let animalsRaw = params.animals;
+      let animalsArr = [];
+      try {
+        if (typeof animalsRaw !== 'string') {
+          animalsRaw = JSON.stringify(animalsRaw);
+        }
+        animalsArr = JSON.parse(animalsRaw);
+        if (!Array.isArray(animalsArr)) {
+          animalsArr = [];
+          console.warn('[DatosCompletos] El parámetro animals no es un array tras el parseo. Se inicializa vacío.');
+        }
+      } catch (e) {
+        animalsArr = [];
+        console.warn('[DatosCompletos] Error parseando params.animals. Se inicializa vacío.', e);
+      }
+      if (animalsArr.length > 0) {
+        const mascotasFormateadas = animalsArr.map(animal => ({
+          nombre: animal.nombre || '',
+          tipo: animal.tipo || '',
+          raza: animal.raza || '',
+          sexo: animal.sexo || '',
+          edad: animal.edad || '',
+          chip: ''
+        }));
+        setFormData(prev => ({ ...prev, mascotas: mascotasFormateadas }));
+        setHasInitializedAnimals(true);
+        console.log("[DatosCompletos] Mascotas inicializadas:", mascotasFormateadas);
+      } else {
+        setFormData(prev => ({ ...prev, mascotas: [] }));
+        setHasInitializedAnimals(true);
+        console.log("[DatosCompletos] Mascotas inicializadas vacías.");
+      }
+      setIsInitializing(false);
+    }
     // Manejo de la inicialización de mascotas - SOLO UNA VEZ
     if (params.animals && !hasInitializedAnimals) {
       console.log("[DatosCompletos] Iniciando primera inicialización de mascotas");
@@ -521,20 +553,27 @@ export default function DatosCompletosPage() {
     console.log("[DatosCompletos] Iniciando handleSubmit");
     console.log("[DatosCompletos] FormData actual:", formData);
     console.log("[DatosCompletos] Estado de autenticación:", currentUser ? "Autenticado" : "No autenticado");
-    
-    // Verificar autenticación primero
     if (!currentUser) {
       console.log("[DatosCompletos] Usuario no autenticado, redirigiendo a login");
       Alert.alert('Error', 'Por favor, inicia sesión para continuar.');
       router.replace('/login');
       return;
     }
-
     const isValid = validarFormulario();
     console.log("[DatosCompletos] Formulario válido:", isValid);
-    
     if (!isValid) {
-      console.log("[DatosCompletos] Formulario inválido, mostrando errores:", errors);
+      // Mostrar todos los errores en pantalla y hacer scroll al primer error
+      setShowResumen(false); // Asegura que se muestre el formulario editable
+      setTimeout(() => {
+        // Buscar el primer campo con error y hacer scroll automático
+        const firstErrorKey = Object.keys(errors)[0];
+        if (firstErrorKey) {
+          const el = document.querySelector(`[name='${firstErrorKey}']`);
+          if (el && el.scrollIntoView) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 200);
       Alert.alert('Error', 'Por favor, completa todos los campos obligatorios y corrige los errores.');
       return;
     }
@@ -561,6 +600,75 @@ export default function DatosCompletosPage() {
         ultimaActualizacion: new Date().toISOString()
       });
 
+      // ACTUALIZAR EL PRESUPUESTO MÁS RECIENTE DEL USUARIO CON LOS DATOS COMPLETOS
+      try {
+        const presupuestosQuery = query(
+          collection(db, 'presupuestos'),
+          where('uidUsuario', '==', currentUser.uid),
+          orderBy('createdAt', 'desc'),
+          limit(1)
+        );
+        const presupuestosSnap = await getDocs(presupuestosQuery);
+        if (!presupuestosSnap.empty) {
+          const presupuestoDoc = presupuestosSnap.docs[0];
+          await updateDoc(doc(db, 'presupuestos', presupuestoDoc.id), {
+            datosCompletos: {
+              mascotas: formData.mascotas,
+              tipoDocumento: formData.tipoDocumento,
+              numeroDocumento: formData.numeroDocumento,
+              fechaNacimiento: formData.fechaNacimiento,
+              tipoVia: formData.tipoVia,
+              nombreVia: formData.nombreVia,
+              numero: formData.numero,
+              piso: formData.piso,
+              puerta: formData.puerta,
+              escalera: formData.escalera,
+              codigoPostal: formData.codigoPostal,
+              provincia: formData.provincia,
+              comunidadAutonoma: formData.comunidadAutonoma,
+            }
+          });
+          console.log('[DatosCompletos] Presupuesto actualizado con datosCompletos');
+        }
+      } catch (e) {
+        console.error('[DatosCompletos] Error actualizando presupuesto con datosCompletos:', e);
+      }
+
+      // ACTUALIZAR EL PRESUPUESTO MÁS RECIENTE DEL USUARIO SIN datosCompletos
+      try {
+        const presupuestosQuery = query(
+          collection(db, 'presupuestos'),
+          where('uidUsuario', '==', currentUser.uid),
+          orderBy('createdAt', 'desc')
+        );
+        const presupuestosSnap = await getDocs(presupuestosQuery);
+        const presupuestoDoc = presupuestosSnap.docs.find(doc => !doc.data().datosCompletos);
+        if (presupuestoDoc) {
+          await updateDoc(doc(db, 'presupuestos', presupuestoDoc.id), {
+            datosCompletos: {
+              mascotas: formData.mascotas,
+              tipoDocumento: formData.tipoDocumento,
+              numeroDocumento: formData.numeroDocumento,
+              fechaNacimiento: formData.fechaNacimiento,
+              tipoVia: formData.tipoVia,
+              nombreVia: formData.nombreVia,
+              numero: formData.numero,
+              piso: formData.piso,
+              puerta: formData.puerta,
+              escalera: formData.escalera,
+              codigoPostal: formData.codigoPostal,
+              provincia: formData.provincia,
+              comunidadAutonoma: formData.comunidadAutonoma,
+            }
+          });
+          console.log('[DatosCompletos] Presupuesto actualizado con datosCompletos');
+        } else {
+          console.warn('[DatosCompletos] No se encontró presupuesto pendiente de datosCompletos');
+        }
+      } catch (e) {
+        console.error('[DatosCompletos] Error actualizando presupuesto con datosCompletos:', e);
+      }
+
       if (params.fromRegistro === 'true' && params.animals) {
         try {
           const animals = JSON.parse(params.animals);
@@ -572,15 +680,14 @@ export default function DatosCompletosPage() {
               email: currentUser.email
             },
             howHeard: params.howHeard || '',
-            selectedPlanId: params.selectedPlanId || '',
-            planNombre: params.planNombre || '',
-            precioEstimado: params.precioEstimado || '',
-            numeroMascotas: params.numeroMascotas || '0',
+            selectedPlanId: params.selectedPlanId || formData.planSeleccionado?.id || '',
+            planNombre: params.planNombre || formData.planSeleccionado?.nombre || '',
+            precioEstimado: params.precioEstimado || formData.planSeleccionado?.precio?.toString() || '',
+            numeroMascotas: params.numeroMascotas || (animals ? animals.length.toString() : '0'),
             status: "completado",
             createdAt: new Date().toISOString(),
             completedAt: new Date().toISOString()
           };
-
           await addDoc(collection(db, 'presupuestos'), presupuestoData);
           console.log("[DatosCompletos] Presupuesto guardado exitosamente");
         } catch (error) {

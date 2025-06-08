@@ -120,16 +120,16 @@ const heroHeight = Platform.select({ web: '100vh', default: 400 });
 
 // --- Imágenes y Constantes ---
 const images = {
-  HERO: require("../assets/images/pet-hero.png"), 
-  GALLERY_1: require("../assets/images/pet-hero.png"), 
-  GALLERY_2: require("../assets/images/pet-hero.png"),
-  GALLERY_3: require("../assets/images/pet-hero.png"),
-  GALLERY_4: require("../assets/images/pet-hero.png"),
-  GALLERY_5: require("../assets/images/pet-hero.png"),
-  GALLERY_6: require("../assets/images/pet-hero.png"),
-  GALLERY_7: require("../assets/images/pet-hero.png"),
-  GALLERY_8: require("../assets/images/pet-hero.png"),
-  GALLERY_9: require("../assets/images/pet-hero.png"),
+  HERO: require("../assets/images/pet-hero.png"),
+  PERRO: require("../assets/images/perro.jpg"),
+  PERRO2: require("../assets/images/perro2.jpg"),
+  LABRADOR: require("../assets/images/un-perro-de-raza-labrador.jpeg"),
+  GATO: require("../assets/images/gato.jpg"),
+  GATO1: require("../assets/images/gato1.jpg"),
+  GATO3: require("../assets/images/gato3.jpg"),
+  HAMSTER: require("../assets/images/hamster2.jpg"),
+  HURON: require("../assets/images/huron.png"),
+  TORTUGA: require("../assets/images/tortuga.jpg"),
 };
 
 // --- Datos ---
@@ -787,19 +787,28 @@ const CommunitySection = React.forwardRef((props, ref) => {
   const { width } = useWindowDimensions();
   const isMobile = width < 700;
   const imagesPerGroup = isMobile ? 1 : 3;
-  
-  const galleryData = [
-    images.GALLERY_1,
-    images.GALLERY_2,
-    images.GALLERY_3,
-    images.GALLERY_4,
-    images.GALLERY_5,
-    images.GALLERY_6,
-    images.GALLERY_7,
-    images.GALLERY_8,
-    images.GALLERY_9,
+
+  // Array de imágenes de animales
+  const animalImages = [
+    images.PERRO,
+    images.PERRO2,
+    images.LABRADOR,
+    images.GATO,
+    images.GATO1,
+    images.GATO3,
+    images.HAMSTER,
+    images.HURON,
+    images.TORTUGA,
   ];
-  
+  // Barajar el array de imágenes al cargar la sección
+  const [galleryData] = useState(() => {
+    const arr = [...animalImages];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  });
   const totalGroups = Math.ceil(galleryData.length / imagesPerGroup);
 
   useEffect(() => {

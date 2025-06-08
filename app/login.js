@@ -126,14 +126,18 @@ export default function LoginScreen() {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         specificErrorMessage = 'El correo electrónico o la contraseña son incorrectos.';
         setEmailError(specificErrorMessage); 
-        setPasswordError(' '); // Para marcar ambos campos si es un error general
+        setPasswordError(specificErrorMessage); // Mostrar en ambos campos
       } else if (error.code === 'auth/invalid-email') {
         specificErrorMessage = 'El formato del correo electrónico no es válido.';
         setEmailError(specificErrorMessage);
       } else if (error.code === 'auth/too-many-requests') {
         specificErrorMessage = 'Demasiados intentos. Intenta más tarde.';
+        setEmailError(specificErrorMessage);
+        setPasswordError(specificErrorMessage);
+      } else {
+        setEmailError(specificErrorMessage);
+        setPasswordError(specificErrorMessage);
       }
-      Alert.alert('Error de Inicio de Sesión', specificErrorMessage);
     } finally {
       setIsLoading(false);
       console.log("[LoginScreen] Proceso de login finalizado.");

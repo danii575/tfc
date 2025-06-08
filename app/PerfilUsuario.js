@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { getAuth, updateEmail, updateProfile } from 'firebase/auth';
 import { db } from '../firebase/firebaseConfig';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { useAuth } from './_layout';
 import { Picker } from '@react-native-picker/picker';
 
@@ -68,6 +68,9 @@ export default function PerfilUsuario() {
   const isMobile = width < 700;
   const [originalForm, setOriginalForm] = useState(null);
   const [personalError, setPersonalError] = useState('');
+  const [todasMascotas, setTodasMascotas] = useState([]);
+  const [todasPolizas, setTodasPolizas] = useState([]);
+  const [loadingDatos, setLoadingDatos] = useState(true);
 
   // Añadir campos de datosCompletos
   const datosCompletos = userData?.datosCompletos || {};
@@ -125,6 +128,33 @@ export default function PerfilUsuario() {
       });
     }
   }, [currentUser, userData, isLoadingAuth]);
+
+  const fetchPolizas = async (uid) => {
+    const q = query(collection(db, 'presupuestos'), where('uidUsuario', '==', uid));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  };
+
+  useEffect(() => {
+    const cargarDatos = async () => {
+      if (currentUser) {
+        setLoadingDatos(true);
+        try {
+          // Trae todos los presupuestos del usuario
+          const polizas = await fetchPolizas(currentUser.uid);
+          setTodasPolizas(polizas);
+          // Junta todas las mascotas de todos los presupuestos
+          const mascotas = polizas.flatMap(p => p.animals || []);
+          setTodasMascotas(mascotas);
+        } catch (e) {
+          setTodasMascotas([]);
+          setTodasPolizas([]);
+        }
+        setLoadingDatos(false);
+      }
+    };
+    cargarDatos();
+  }, [currentUser]);
 
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -473,20 +503,57 @@ export default function PerfilUsuario() {
         {activeSection === 'facturas' && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Facturas</Text>
-            {facturas.length === 0 ? (
+            {loadingDatos ? (
+              <Text>Cargando facturas...</Text>
+            ) : todasPolizas.length === 0 ? (
               <Text>No hay facturas disponibles.</Text>
             ) : (
-              facturas.map(f => (
-                <View key={f.id} style={{ borderBottomWidth: 1, borderBottomColor: theme.greyLight, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View>
-                    <Text style={{ fontWeight: 'bold', color: theme.primaryColor }}>#{f.id} - {f.concepto}</Text>
-                    <Text style={{ color: theme.secondaryColor, fontSize: 13 }}>Fecha: {f.fecha}</Text>
-                    <Text style={{ color: theme.secondaryColor, fontSize: 13 }}>Estado: {f.estado}</Text>
+              todasPolizas.map((p, idx) => (
+                <View key={p.id} style={{ borderBottomWidth: 1, borderBottomColor: theme.greyLight, paddingVertical: 10, marginBottom: 10 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View>
+                      <Text style={{ fontWeight: 'bold', color: theme.primaryColor }}>
+                        Póliza {p.poliza ? p.poliza : p.id} - {p.planNombre || 'Sin nombre'}
+                      </Text>
+                      <Text style={{ color: theme.secondaryColor, fontSize: 13 }}>
+                        Fecha: {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : ''}
+                      </Text>
+                      <Text style={{ color: theme.secondaryColor, fontSize: 13 }}>
+                        Estado: {p.status || 'Desconocido'}
+                      </Text>
+                    </View>
                   </View>
-                  {f.estado !== 'cancelada' && f.estado !== 'eliminada' && f.mascotaId && (
-                    <TouchableOpacity onPress={() => handleCancelarPoliza(f)} style={{ padding: 8 }}>
-                      <MaterialIcons name="cancel" size={22} color={theme.errorRed} />
-                    </TouchableOpacity>
+                  {/* Mascotas asociadas a la póliza */}
+                  {Array.isArray(p.animals) && p.animals.length > 0 && (
+                    <View style={{ marginTop: 8, marginLeft: 10 }}>
+                      <Text style={{ fontWeight: 'bold', color: theme.secondaryColor, marginBottom: 4 }}>Mascotas:</Text>
+                      {p.animals.map((m, i) => {
+                        // Buscar chip y estado en datosCompletos si existe
+                        let chip = m.chip || '';
+                        let estado = m.estado || '';
+                        if (p.datosCompletos && Array.isArray(p.datosCompletos.mascotas) && p.datosCompletos.mascotas[i]) {
+                          chip = p.datosCompletos.mascotas[i].chip || chip;
+                          estado = p.datosCompletos.mascotas[i].estado || estado;
+                        }
+                        if (!chip) chip = 'Sin chip';
+                        if (!estado) estado = 'Sin estado';
+
+                        return (
+                          <View key={chip + (m.nombre || i)} style={{ marginBottom: 4 }}>
+                            <Text style={{ color: theme.primaryColor }}>{m.nombre || 'Sin nombre'}</Text>
+                            <Text style={{ color: theme.secondaryColor, fontSize: 13 }}>
+                              {m.tipo} - {m.tipo === 'otro' ? (m.tipoExotico || 'Tipo de Animal Exótico') : (m.raza || '')}
+                            </Text>
+                            {chip !== 'Sin chip' && (
+                              <Text style={{ color: theme.secondaryColor, fontSize: 13 }}>Chip: {chip}</Text>
+                            )}
+                            {estado !== 'Sin estado' && (
+                              <Text style={{ color: theme.secondaryColor, fontSize: 13 }}>Estado: {estado}</Text>
+                            )}
+                          </View>
+                        );
+                      })}
+                    </View>
                   )}
                 </View>
               ))
@@ -496,22 +563,60 @@ export default function PerfilUsuario() {
         {activeSection === 'mascotas' && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Mascotas aseguradas</Text>
-            {mascotas.length === 0 ? (
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.primaryColor,
+                padding: 12,
+                borderRadius: 8,
+                marginBottom: 18,
+                alignItems: 'center',
+                alignSelf: 'stretch',
+              }}
+              onPress={() => router.push('/presupuesto')}
+            >
+              <Text style={{ color: theme.white, fontWeight: 'bold', fontSize: 16 }}>Asegurar nueva mascota</Text>
+            </TouchableOpacity>
+            {loadingDatos ? (
+              <Text>Cargando mascotas...</Text>
+            ) : todasPolizas.length === 0 ? (
               <Text>No tienes mascotas aseguradas actualmente.</Text>
             ) : (
-              mascotas.map((m, idx) => (
-                <View key={idx} style={{ borderBottomWidth: 1, borderBottomColor: theme.greyLight, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View>
-                    <Text style={{ fontWeight: 'bold', color: theme.primaryColor }}>{m.nombre}</Text>
-                    <Text style={{ color: theme.secondaryColor, fontSize: 13 }}>{m.tipo} - {m.raza}</Text>
-                    <Text style={{ color: theme.secondaryColor, fontSize: 13 }}>Chip: {m.chip}</Text>
-                    <Text style={{ color: theme.secondaryColor, fontSize: 13 }}>Póliza: {m.poliza} ({m.estado})</Text>
+              todasPolizas.map((p, polizaIdx) =>
+                Array.isArray(p.animals) && p.animals.length > 0 && (
+                  <View key={p.id || polizaIdx} style={{ marginBottom: 24 }}>
+                    <Text style={{ fontWeight: 'bold', color: theme.secondaryColor, marginBottom: 6 }}>
+                      {p.planNombre ? `Póliza: ${p.planNombre}` : `Póliza ${p.id || polizaIdx + 1}`}
+                    </Text>
+                    {p.animals.map((m, i) => {
+                      let chip = '';
+                      let estado = '';
+                      if (p.datosCompletos && Array.isArray(p.datosCompletos.mascotas) && p.datosCompletos.mascotas[i]) {
+                        chip = p.datosCompletos.mascotas[i].chip || '';
+                        estado = p.datosCompletos.mascotas[i].estado || '';
+                      }
+                      if (!chip && m.chip) chip = m.chip;
+                      if (!chip) chip = 'Sin chip';
+                      if (!estado && m.estado) estado = m.estado;
+                      if (!estado) estado = 'Sin estado';
+
+                      return (
+                        <View key={m.nombre + i} style={{ borderWidth: 1, borderColor: theme.greyLight, borderRadius: 10, marginBottom: 10, padding: 12, backgroundColor: '#FAFAFA' }}>
+                          <Text style={{ fontWeight: 'bold', color: theme.primaryColor }}>{m.nombre || 'Sin nombre'}</Text>
+                          <Text style={{ color: theme.secondaryColor, fontSize: 13 }}>
+                            {m.tipo} - {m.tipo === 'otro' ? (m.tipoExotico || 'Tipo de Animal Exótico') : (m.raza || '')}
+                          </Text>
+                          {chip !== 'Sin chip' && (
+                            <Text style={{ color: theme.secondaryColor, fontSize: 13 }}>Chip: {chip}</Text>
+                          )}
+                          {estado !== 'Sin estado' && (
+                            <Text style={{ color: theme.secondaryColor, fontSize: 13 }}>Estado: {estado}</Text>
+                          )}
+                        </View>
+                      );
+                    })}
                   </View>
-                  <TouchableOpacity onPress={handleEliminarMascota} style={{ padding: 8 }}>
-                    <MaterialIcons name="delete" size={22} color={theme.errorRed} />
-                  </TouchableOpacity>
-                </View>
-              ))
+                )
+              )
             )}
           </View>
         )}

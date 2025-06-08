@@ -94,12 +94,17 @@ export default function BudgetEdit() {
         onChangeText={text => handleChange('precioEstimado', text)}
         keyboardType="numeric"
       />
-      <Text style={styles.label}>Estado</Text>
-      <TextInput
-        style={styles.input}
-        value={form.status || ''}
-        onChangeText={text => handleChange('status', text)}
-      />
+      {/* Estado solo editable si ya está aceptado o rechazado, si no, no se muestra nada */}
+      {(form.status === 'aceptado' || form.status === 'rechazado') && (
+        <>
+          <Text style={styles.label}>Estado</Text>
+          <TextInput
+            style={styles.input}
+            value={form.status || ''}
+            onChangeText={text => handleChange('status', text)}
+          />
+        </>
+      )}
       <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={saving}>
         <Text style={styles.saveButtonText}>{saving ? 'Guardando...' : 'Guardar Cambios'}</Text>
       </TouchableOpacity>

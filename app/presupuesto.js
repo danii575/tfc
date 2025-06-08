@@ -27,6 +27,7 @@ import { collection, addDoc } from 'firebase/firestore';
 import Header from '../components/Header'; 
 import { useAuth } from './_layout'; // Asegúrate que esta ruta sea correcta para tu AuthContext
 import dogBreeds from './dogBreeds.json';
+import { useLocalSearchParams } from 'expo-router';
 
 // Añadir razas de gatos
 const catBreeds = [
@@ -550,8 +551,26 @@ const RazaPickerConBuscador = ({ label, selectedValue, onValueChange, options, e
 };
 
 // --- Estados y Opciones ---
-const initialAnimalState = { nombre: '', tipo: '', tipoExotico: '', sexo: '', edad: '', raza: '', enfermedadesAnteriores: '', notasAdicionales: '' };
-const initialAnimalErrorsState = { nombre: null, tipo: null, tipoExotico: null, sexo: null, edad: null, raza: null };
+const initialAnimalState = { 
+  nombre: '', 
+  tipo: '', 
+  tipoExotico: '', 
+  sexo: '', 
+  edad: '', 
+  raza: '', 
+  enfermedadesAnteriores: '', // único campo para el picker y para el valor final
+  otraEnfermedad: '', // solo para el input de texto si es 'otros'
+  notasAdicionales: '' 
+};
+const initialAnimalErrorsState = { 
+  nombre: null, 
+  tipo: null, 
+  tipoExotico: null, 
+  sexo: null, 
+  edad: null, 
+  raza: null,
+  enfermedadesAnteriores: null 
+};
 const initialOwnerState = { 
   nombre: '', 
   primerApellido: '', 
@@ -570,6 +589,19 @@ const sexoOptions = [{ label: 'Macho', value: 'macho' }, { label: 'Hembra', valu
 const tipoAnimalOptions = [{ label: 'Perro', value: 'perro' }, { label: 'Gato', value: 'gato' }, { label: 'Otro', value: 'otro' }];
 const edadAnimalOptions = [ { label: 'Cachorro (0-1 año)', value: 'cachorro_0_1' }, { label: 'Joven (1-3 años)', value: 'joven_1_3' }, { label: 'Adulto (3-7 años)', value: 'adulto_3_7' }, { label: 'Adulto Mayor (7-10 años)', value: 'adulto_mayor_7_10' }, { label: 'Senior (10+ años)', value: 'senior_10_plus' }];
 const tipoExoticoOptions = [ { label: 'Conejo', value: 'conejo' }, { label: 'Hurón', value: 'huron' }, { label: 'Cobaya', value: 'cobaya' }, { label: 'Hámster', value: 'hamster' }, { label: 'Chinchilla', value: 'chinchilla' }, { label: 'Pájaro', value: 'pajaro' }, { label: 'Reptil', value: 'reptil' }, { label: 'Otro Exótico', value: 'otro_exotico_domestico' }];
+
+const enfermedadesComunesOptions = [
+  { label: 'Ninguna', value: 'ninguna' },
+  { label: 'Alergias', value: 'alergias' },
+  { label: 'Artritis', value: 'artritis' },
+  { label: 'Diabetes', value: 'diabetes' },
+  { label: 'Enfermedad Cardíaca', value: 'enfermedad_cardiaca' },
+  { label: 'Enfermedad Renal', value: 'enfermedad_renal' },
+  { label: 'Epilepsia', value: 'epilepsia' },
+  { label: 'Hipotiroidismo', value: 'hipotiroidismo' },
+  { label: 'Problemas Digestivos', value: 'problemas_digestivos' },
+  { label: 'Problemas Respiratorios', value: 'problemas_respiratorios' }
+];
 // --- Fin Estados y Opciones ---
 
 // Nuevos componentes para la selección inicial
@@ -602,12 +634,13 @@ const AnimalTypeCard = ({ type, title, onSelect, isSelected, style }) => {
 
 export default function PresupuestoPage() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { currentUser, userData: authUserData } = useAuth(); 
   const { width } = useWindowDimensions();
   const isMobile = Platform.OS !== 'web' || width < 700;
 
   const [currentStep, setCurrentStep] = useState(0); 
-  const [animals, setAnimals] = useState([{ ...initialAnimalState }]);
+  const [animals, setAnimals] = useState([initialAnimalState]);
   const [currentAnimalIndex, setCurrentAnimalIndex] = useState(0);
   const [currentAnimalErrors, setCurrentAnimalErrors] = useState({ ...initialAnimalErrorsState });
   
@@ -624,6 +657,17 @@ export default function PresupuestoPage() {
 
   // Controlar el historial de pasos para evitar bucles
   const [lastStepBeforeOwner, setLastStepBeforeOwner] = useState(null);
+
+  // Inicializar el plan seleccionado desde los params o por defecto
+  const [selectedPlan, setSelectedPlan] = useState(() => {
+    if (params.selectedPlan) {
+      return { name: params.selectedPlan, id: params.planId };
+    }
+    // Si no hay params, puedes poner aquí el plan por defecto
+    return { name: 'Básico', id: 'plan1' };
+  });
+
+  const [finalPriceDisplay, setFinalPriceDisplay] = useState('');
 
   useEffect(() => {
     if (currentUser) { 
@@ -668,21 +712,48 @@ export default function PresupuestoPage() {
     }
   };
 
-  const validateAnimalFields = (animalIndex, showAlertOnError = false) => {
+  const validateAnimalFields = (animalIndex, showAlertOnError = false, currentStep = null) => {
     const animalToValidate = animals[animalIndex];
     let errors = { ...initialAnimalErrorsState }; 
     let isValid = true;
-    if (!animalToValidate.nombre.trim()) { errors.nombre = "Nombre es obligatorio."; isValid = false; }
-    if (!animalToValidate.tipo) { errors.tipo = "Tipo es obligatorio."; isValid = false; }
-    if (animalToValidate.tipo === 'otro' && !animalToValidate.tipoExotico) { errors.tipoExotico = "Especifique tipo exótico."; isValid = false; }
-    if (!animalToValidate.sexo) { errors.sexo = "Sexo es obligatorio."; isValid = false; }
-    if (!animalToValidate.edad) { errors.edad = "Rango de edad es obligatorio."; isValid = false; }
-    if (animalToValidate.tipo !== 'otro' && !animalToValidate.raza.trim()) { errors.raza = "Raza es obligatoria."; isValid = false; }
-    
-    setCurrentAnimalErrors(errors);
-    if (!isValid && showAlertOnError) {
-        Alert.alert(`Datos Incompletos (Animal ${animalIndex + 1})`, 'Por favor, corrija los campos marcados.');
+
+    if (!animalToValidate.nombre.trim()) { 
+      errors.nombre = "Nombre es obligatorio."; 
+      isValid = false; 
     }
+    if (!animalToValidate.tipo) { 
+      errors.tipo = "Tipo es obligatorio."; 
+      isValid = false; 
+    }
+    if (animalToValidate.tipo === 'otro' && !animalToValidate.tipoExotico) { 
+      errors.tipoExotico = "Especifique tipo exótico."; 
+      isValid = false; 
+    }
+    if (!animalToValidate.sexo) { 
+      errors.sexo = "Sexo es obligatorio."; 
+      isValid = false; 
+    }
+    if (!animalToValidate.edad) { 
+      errors.edad = "Rango de edad es obligatorio."; 
+      isValid = false; 
+    }
+    if (animalToValidate.tipo !== 'otro' && !animalToValidate.raza.trim()) { 
+      errors.raza = "Raza es obligatoria."; 
+      isValid = false; 
+    }
+    // Validación de enfermedades SOLO en el paso de Información Adicional (step 2)
+    if (currentStep === 2) {
+      if (!animalToValidate.enfermedadesAnteriores || animalToValidate.enfermedadesAnteriores === '') {
+        errors.enfermedadesAnteriores = "Selecciona una enfermedad o 'Otros'.";
+        isValid = false;
+      } else if (animalToValidate.enfermedadesAnteriores === 'otros') {
+        if (!animalToValidate.otraEnfermedad || !animalToValidate.otraEnfermedad.trim()) {
+          errors.enfermedadesAnteriores = "Debe especificar las otras enfermedades.";
+          isValid = false;
+        }
+      }
+    }
+    setCurrentAnimalErrors(errors);
     return isValid;
   };
 
@@ -751,7 +822,6 @@ export default function PresupuestoPage() {
   };
 
   const handleContinueToOwner = () => {
-    // Pasar a datos del usuario
     setCurrentStep(3);
     scrollToTop();
   };
@@ -764,11 +834,14 @@ export default function PresupuestoPage() {
       }
       setCurrentStep(1);
     } else if (currentStep === 1) {
-      if (!validateAnimalFields(currentAnimalIndex, true)) {
+      if (!validateAnimalFields(currentAnimalIndex, true, 1)) {
         return;
       }
       setCurrentStep(2);
     } else if (currentStep === 2) {
+      if (!validateAnimalFields(currentAnimalIndex, true, 2)) {
+        return;
+      }
       setCurrentStep('addOrContinue');
     } else if (currentStep === 3) {
       if (!validateOwnerFields(true)) {
@@ -852,31 +925,32 @@ export default function PresupuestoPage() {
       setIsLoading(true);
       try {
         const budgetData = { 
-          uidUsuario: firebaseAuthCurrentUser.uid, animals, ownerData, 
-          howHeard: howHeard.trim(), status: "solicitado",
-          createdAt: new Date().toISOString() 
+          uidUsuario: firebaseAuthCurrentUser.uid, 
+          animals, 
+          ownerData, 
+          howHeard: howHeard.trim(), 
+          status: "solicitado",
+          createdAt: new Date().toISOString(),
+          planNombre: selectedPlan?.name || '',
+          precioEstimado: finalPriceDisplay || '0€'
         };
         console.log("[handleSubmit] Datos a guardar (logueado):", JSON.stringify(budgetData, null, 2));
         const docRef = await addDoc(collection(db, 'presupuestos'), budgetData);
         console.log("[handleSubmit] Datos GUARDADOS en Firebase. ID:", docRef.id);
         
-        // Navegar PRIMERO, LUEGO mostrar alerta.
         navigateToFinalScreen({ 
             animals: JSON.stringify(animals), 
             ownerData: JSON.stringify(ownerData),
             howHeard: howHeard.trim(), 
-            uidUsuario: firebaseAuthCurrentUser.uid, 
+            uidUsuario: firebaseAuthCurrentUser.uid,
+            precioEstimado: finalPriceDisplay || '0€'
         });
         
-        // Poner isLoading a false DESPUÉS de intentar la navegación.
-        // La alerta se mostrará si la navegación no interrumpe el flujo.
-        // Si el error "Unexpected text node" ocurre aquí, la alerta podría no mostrarse.
         setTimeout(() => {
             setIsLoading(false); 
             console.log("[handleSubmit] isLoading puesto a false (logueado, después de guardar y retraso de alerta).");
             Alert.alert('Solicitud Guardada', 'Tus datos han sido guardados y te hemos redirigido para ver las opciones.');
-        }, 150); // Pequeña demora para la alerta
-
+        }, 150);
 
       } catch (error) { 
         setIsLoading(false); 
@@ -890,7 +964,8 @@ export default function PresupuestoPage() {
         animals: JSON.stringify(animals), 
         ownerData: JSON.stringify(ownerData), 
         howHeard: howHeard.trim(),
-        isGuest: "true" 
+        isGuest: "true",
+        precioEstimado: finalPriceDisplay || '0€'
       });
       setTimeout(() => {
         Alert.alert(
@@ -1031,15 +1106,69 @@ export default function PresupuestoPage() {
   const renderAdditionalInfoForm = () => (
     <FadeInSection animationKey="additional-info-form">
       <FormCard title="Información Adicional">
-        <FormInput
-          label="Enfermedades Anteriores"
-          isOptional={true}
-          value={currentAnimalData.enfermedadesAnteriores}
-          onChangeText={text => handleAnimalChange('enfermedadesAnteriores', text)}
-          multiline
-          numberOfLines={3}
-          placeholder="Describa brevemente..."
-        />
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>
+            Enfermedades Anteriores <Text style={{color: theme.error}}>*</Text>
+          </Text>
+          <View style={[styles.pickerInputContainer, currentAnimalErrors.enfermedadesAnteriores ? styles.inputErrorBorder : {}]}>
+            <Picker
+              selectedValue={
+                enfermedadesComunesOptions.some(opt => opt.value === currentAnimalData.enfermedadesAnteriores)
+                  ? currentAnimalData.enfermedadesAnteriores
+                  : currentAnimalData.enfermedadesAnteriores === '' ? '' : 'otros'
+              }
+              onValueChange={value => {
+                if (value === 'otros') {
+                  handleAnimalChange('enfermedadesAnteriores', 'otros');
+                } else {
+                  handleAnimalChange('enfermedadesAnteriores', value);
+                  setCurrentAnimalErrors(prev => ({ ...prev, enfermedadesAnteriores: null }));
+                }
+              }}
+              style={styles.pickerElement}
+              dropdownIconColor={theme.primaryColor}
+              mode="dropdown"
+            >
+              <Picker.Item label="Seleccionar..." value="" />
+              {enfermedadesComunesOptions.map(opt => (
+                <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
+              ))}
+              <Picker.Item label="Otros" value="otros" />
+            </Picker>
+          </View>
+          {currentAnimalErrors.enfermedadesAnteriores && (
+            <Text style={styles.errorText}>{currentAnimalErrors.enfermedadesAnteriores}</Text>
+          )}
+        </View>
+
+        {currentAnimalData.enfermedadesAnteriores === 'otros' && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>
+              Especifique otras enfermedades <Text style={{color: theme.error}}>*</Text>
+            </Text>
+            <TextInput
+              style={[
+                styles.input,
+                styles.multilineInput,
+                currentAnimalErrors.enfermedadesAnteriores ? styles.inputErrorBorder : {}
+              ]}
+              value={currentAnimalData.otraEnfermedad}
+              onChangeText={text => {
+                handleAnimalChange('otraEnfermedad', text);
+                if (text.trim()) {
+                  setCurrentAnimalErrors(prev => ({ ...prev, enfermedadesAnteriores: null }));
+                }
+              }}
+              multiline
+              numberOfLines={3}
+              placeholder="Describa las enfermedades..."
+            />
+            {currentAnimalErrors.enfermedadesAnteriores && (
+              <Text style={styles.errorText}>{currentAnimalErrors.enfermedadesAnteriores}</Text>
+            )}
+          </View>
+        )}
+
         <FormInput
           label="Notas Adicionales"
           isOptional={true}
@@ -1049,7 +1178,7 @@ export default function PresupuestoPage() {
           numberOfLines={3}
           placeholder="Alergias, comportamiento, dieta..."
         />
-        </FormCard>
+      </FormCard>
     </FadeInSection>
   );
 
