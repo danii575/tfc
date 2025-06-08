@@ -38,3 +38,21 @@ yarn-error.*
 app-example
 
 .vercel
+
+# Ignorar la carpeta de Firebase y todo su contenido
+firebase/
+
+# Archivos de configuración y datos de Firebase
+firebase.json
+.firebaserc
+firebase-debug.log
+firebase-debug.*
+/functions/node_modules/
+/functions/lib/
+/functions/.env
+/functions/.env.local
+/serviceAccountKey.json
+
+# Otros archivos sensibles
+.env
+.env.local

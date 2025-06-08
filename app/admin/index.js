@@ -34,6 +34,7 @@ export default function AdminDashboard() {
       return;
     }
 
+    
     fetchStats();
   }, [userData]);
 
