@@ -26,6 +26,7 @@ import {
 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import Header from "../components/Header"; 
+import { useAuth } from './_layout';
 //hola a
 // --- Paleta de Colores Refinada ---
 const theme = {
@@ -1657,6 +1658,8 @@ export default function IndexPage() {
   const communitySectionRef = useRef(null);
   const faqSectionRef = useRef(null);
   const contactSectionRef = useRef(null); // ID: contact (footer)
+
+  const { userData } = useAuth();
 
   const scrollToSection = (ref) => {
     if (ref.current) {

@@ -192,7 +192,8 @@ export default function RegistroScreen() {
         email: formData.email,
         telefono: formData.telefono,
         fechaRegistro: new Date().toISOString(),
-        ultimaActualizacion: new Date().toISOString()
+        ultimaActualizacion: new Date().toISOString(),
+        role: 'user'
       };
       
       console.log("[handleRegister] Datos a guardar:", userDocData);

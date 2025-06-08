@@ -114,6 +114,11 @@ const Header = (props) => {
           <HeaderHoverable onPress={() => handleNav(null, '/#about', onNavigateToAbout)} style={styles.navItemContainer} hoverStyle={styles.navItemHover}><Text style={styles.navItemText}>Sobre Nosotros</Text></HeaderHoverable>
           <HeaderHoverable onPress={() => handleNav(null, '/#contact', onNavigateToContact)} style={styles.navItemContainer} hoverStyle={styles.navItemHover}><Text style={styles.navItemText}>Contacto</Text></HeaderHoverable>
           <HeaderHoverable onPress={() => router.push('/organizaciones')} style={styles.navItemContainer} hoverStyle={styles.navItemHover}><Text style={styles.navItemText}>Organizaciones</Text></HeaderHoverable>
+          {userData?.role === 'admin' && (
+            <HeaderHoverable onPress={() => router.push('/admin')} style={styles.navItemContainer} hoverStyle={styles.navItemHover}>
+              <Text style={styles.navItemText}>Panel de Administración</Text>
+            </HeaderHoverable>
+          )}
         </View>
       )}
       {!showNavLinks && <View style={styles.centerSectionPlaceholder} /> /* Espaciador si no hay links */}
@@ -177,6 +182,11 @@ const Header = (props) => {
               <TouchableOpacity onPress={() => { closeDrawer(); handleNav(null, '/#about', onNavigateToAbout); }} style={styles.drawerLink}><Text style={styles.navItemText}>Sobre Nosotros</Text></TouchableOpacity>
               <TouchableOpacity onPress={() => { closeDrawer(); handleNav(null, '/#contact', onNavigateToContact); }} style={styles.drawerLink}><Text style={styles.navItemText}>Contacto</Text></TouchableOpacity>
               <TouchableOpacity onPress={() => { closeDrawer(); router.push('/organizaciones'); }} style={styles.drawerLink}><Text style={styles.navItemText}>Organizaciones</Text></TouchableOpacity>
+              {isMobile && userData?.role === 'admin' && (
+                <TouchableOpacity onPress={() => { closeDrawer(); router.push('/admin'); }} style={styles.drawerLink}>
+                  <Text style={styles.navItemText}>Panel de Administración</Text>
+                </TouchableOpacity>
+              )}
             </View>
             <View style={styles.drawerAuth}>
               {currentUser ? (
@@ -369,6 +379,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
+  },
+  menuButton: {
+    paddingVertical: spacing.small,
+    paddingHorizontal: spacing.medium,
+    borderRadius: 4,
+    marginHorizontal: spacing.small / 4,
+  },
+  menuButtonText: {
+    fontSize: Platform.OS === 'web' ? 15 : 14,
+    color: COLORS.primary,
+    fontWeight: 'bold',
+  },
+  menuItem: {
+    paddingVertical: spacing.small,
+    paddingHorizontal: spacing.medium,
+    borderRadius: 4,
+    marginHorizontal: spacing.small / 4,
+  },
+  menuItemText: {
+    fontSize: Platform.OS === 'web' ? 15 : 14,
+    color: COLORS.primary,
+    fontWeight: 'bold',
   },
 });
 

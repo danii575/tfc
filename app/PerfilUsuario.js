@@ -93,10 +93,12 @@ export default function PerfilUsuario() {
   const mascotas = userData?.mascotas || [];
   const facturas = (userData?.mascotas || []).map((m, idx) => ({
     id: `F-${idx + 1}`,
-    fecha: m.fechaAlta || '2024-06-01',
+    fecha: m.fechaAlta ? new Date(m.fechaAlta).toLocaleDateString() : new Date().toLocaleDateString(),
     concepto: `Seguro de ${m.nombre}`,
-    estado: 'Pagada',
-    url: null
+    estado: m.estado || 'Pagada',
+    url: null,
+    mascotaId: m.id,
+    polizaId: m.polizaId || m.poliza
   }));
   const formaPago = userData?.pago || { tipo: 'Tarjeta', numero: '**** **** **** 1234', titular: 'D. Usuario' };
 
@@ -211,6 +213,45 @@ export default function PerfilUsuario() {
       'Para eliminar una mascota de tu póliza de seguro, necesitas contactar con nuestro equipo de atención al cliente.\n\nPor favor, envía un correo a:\nsoporte@petcareseguros.com\n\nIndica en el correo el nombre de la mascota que deseas eliminar y tu número de póliza.',
       [
         { text: 'Entendido', style: 'default' },
+      ]
+    );
+  };
+
+  // Función para cancelar póliza
+  const handleCancelarPoliza = (factura) => {
+    if (!factura.mascotaId) {
+      console.error('No se puede cancelar: mascotaId no definido en la factura', factura);
+      Alert.alert('Error', 'No se puede cancelar esta póliza porque falta información de la mascota.');
+      return;
+    }
+    const fechaCancelacion = new Date();
+    const fechaFin = new Date(fechaCancelacion);
+    fechaFin.setMonth(fechaFin.getMonth() + 1);
+    const fechaFinStr = fechaFin.toLocaleDateString();
+    Alert.alert(
+      'Cancelar póliza',
+      `¿Estás seguro de que quieres cancelar esta póliza? El mes en curso será el último y tu cobertura finalizará el ${fechaFinStr}.`,
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Sí, cancelar', style: 'destructive', onPress: async () => {
+            try {
+              await updateDoc(doc(db, 'mascotas', factura.mascotaId), {
+                estado: 'cancelada',
+                fechaCancelacion: fechaCancelacion.toISOString(),
+                fechaFin: fechaFin.toISOString()
+              });
+              setTimeout(async () => {
+                await updateDoc(doc(db, 'mascotas', factura.mascotaId), { estado: 'eliminada' });
+              }, fechaFin.getTime() - fechaCancelacion.getTime());
+              Alert.alert('Póliza cancelada', `Tu cobertura seguirá activa hasta el ${fechaFinStr}. Después, la póliza se eliminará automáticamente y recibirás un aviso.`);
+              await fetchUserData();
+            } catch (e) {
+              console.error('Error al cancelar póliza:', e);
+              Alert.alert('Error', e.message || JSON.stringify(e));
+            }
+          }
+        }
       ]
     );
   };
@@ -442,11 +483,11 @@ export default function PerfilUsuario() {
                     <Text style={{ color: theme.secondaryColor, fontSize: 13 }}>Fecha: {f.fecha}</Text>
                     <Text style={{ color: theme.secondaryColor, fontSize: 13 }}>Estado: {f.estado}</Text>
                   </View>
-                  {f.url ? (
-                    <TouchableOpacity onPress={() => Linking.openURL(f.url)} style={{ padding: 8 }}>
-                      <MaterialIcons name="download" size={22} color={theme.primaryColor} />
+                  {f.estado !== 'cancelada' && f.estado !== 'eliminada' && f.mascotaId && (
+                    <TouchableOpacity onPress={() => handleCancelarPoliza(f)} style={{ padding: 8 }}>
+                      <MaterialIcons name="cancel" size={22} color={theme.errorRed} />
                     </TouchableOpacity>
-                  ) : null}
+                  )}
                 </View>
               ))
             )}
