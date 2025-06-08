@@ -1693,7 +1693,7 @@ export default function IndexPage() {
             node.measureLayout(
               ancestor,
               (x, y) => {
-                const headerOffset = 80; // Ajusta este valor según la altura de tu Header
+                const headerOffset = 80; 
                 scrollResponder.scrollTo({ y: y - headerOffset > 0 ? y - headerOffset : y, animated: true });
               },
               () => { console.error('Native scroll: Failed to measure layout.'); }
@@ -1703,6 +1703,7 @@ export default function IndexPage() {
       }
     }
   };
+
 
   const handleScrollToHome = () => {
     // @ts-ignore
