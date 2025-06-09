@@ -20,7 +20,7 @@ export default function PresupuestoForm() {
     email: '',
     telefono: ''
   });
-//hola 
+ 
 
   const handleNext = () => setStep(prev => prev + 1);
   const handleBack = () => setStep(prev => Math.max(prev - 1, 0));
