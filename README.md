@@ -1,176 +1,128 @@
-🐾 PetCare Seguros
-🌐 Demo en línea
+<h1 align="center">🐾 PetCare Seguros</h1>
 
-🔗 https://aseguradora1.netlify.app
+<p align="center">
+  <b>Tu mascota, protegida siempre 💚</b><br>
+  Proyecto desarrollado como Trabajo Fin de Ciclo (TFC) del Grado Superior en <b>Desarrollo de Aplicaciones Multiplataforma</b>.
+</p>
 
-🧭 Descripción (ES)
+---
 
-PetCare Seguros es una aplicación web desarrollada como Trabajo Fin de Ciclo (TFC) del grado superior en Desarrollo de Aplicaciones Multiplataforma.
-Su objetivo es digitalizar la gestión de seguros veterinarios para pequeñas y medianas empresas, ofreciendo una plataforma moderna, intuitiva y completamente funcional.
+## 🌐 Demo en línea  
+🔗 **[Ver Proyecto en Netlify](https://aseguradora1.netlify.app)**
 
-La aplicación permite visualizar planes de seguros, gestionar usuarios autenticados, simular compras con pasarela de pago (modo prueba) y enviar notificaciones automáticas por correo electrónico.
+---
 
-🎯 Objetivos principales
+## 🪶 Descripción (ES)
 
-Desarrollar una web funcional, accesible y moderna.
+**PetCare Seguros** es una aplicación web diseñada para **digitalizar la gestión de seguros veterinarios** en pequeñas y medianas empresas.  
+Ofrece una experiencia moderna, segura e intuitiva tanto para los clientes como para los administradores.
 
-Permitir la gestión digital de usuarios y pólizas mediante una interfaz intuitiva.
+La plataforma permite:
+- Visualizar planes de seguros 🐶🐱  
+- Registrar e iniciar sesión con autenticación segura 🔐  
+- Simular compras con pasarela de pago (modo prueba) 💳  
+- Enviar notificaciones automáticas por correo electrónico 📧  
 
-Implementar un sistema de autenticación seguro con Firebase Authentication.
+---
 
-Gestionar datos de usuarios, productos y carritos en Firebase Firestore.
+## 🎯 Objetivos principales
 
-Integrar una pasarela de pago simulada con Stripe (modo test).
+✅ Desarrollar una web funcional, accesible y moderna.  
+✅ Permitir la gestión digital de usuarios y pólizas mediante una interfaz intuitiva.  
+✅ Implementar un sistema de autenticación seguro con **Firebase Authentication**.  
+✅ Gestionar datos de usuarios y productos con **Firebase Firestore**.  
+✅ Integrar una pasarela de pago simulada con **Stripe (modo test)**.  
+✅ Configurar notificaciones automáticas mediante **Resend + Vercel Serverless**.  
+✅ Desplegar la aplicación en **Netlify** con integración continua desde GitHub.  
+✅ Garantizar la **responsividad multiplataforma** (React Native for Web + NativeWind).
 
-Configurar notificaciones automáticas mediante el servicio Resend (via endpoint serverless en Vercel).
+---
 
-Desplegar la aplicación en Netlify, con integración continua desde GitHub.
+## ⚙️ Tecnologías utilizadas
 
-Garantizar responsividad y compatibilidad multiplataforma (React Native for Web + NativeWind).
+| Categoría | Herramientas |
+|------------|--------------|
+| **Frontend** | React Native for Web · Expo · TypeScript |
+| **Estilos** | NativeWind (Tailwind adaptado) |
+| **Backend / Servicios** | Firebase (Auth + Firestore) |
+| **Pagos simulados** | Stripe (modo test) |
+| **Notificaciones** | Resend + Vercel Functions |
+| **Despliegue** | Netlify |
+| **Gestión de proyecto** | GitHub · JIRA · Scrum |
 
-⚙️ Tecnologías utilizadas
+---
 
-Frontend: React Native for Web + Expo + TypeScript
+## 🧠 Desarrollo
 
-Estilos: NativeWind (Tailwind CSS adaptado a React Native)
+📅 **Metodología:** Scrum  
+🔁 **Duración estimada:** 8 semanas (≈320 h)  
+🧩 **Etapas:**  
+1. Diseño UI/UX y prototipado  
+2. Desarrollo del frontend  
+3. Integración de backend y servicios  
+4. Pruebas y refinamiento  
+5. Documentación y despliegue final  
 
-Backend / Servicios: Firebase (Authentication + Firestore)
+---
 
-Pagos simulados: Stripe (modo prueba)
+## 🧩 Desafíos y soluciones
 
-Notificaciones: Resend + Endpoint Serverless (Vercel)
+| Problema | Solución aplicada |
+|-----------|------------------|
+| Gestión de estado global en React Native for Web | Hooks personalizados + Context API modular |
+| Responsividad en diferentes navegadores | Ajuste de breakpoints y media queries |
+| Errores en la API de Stripe | Validación del payload y manejo controlado de errores |
+| Variables de entorno seguras | Configuración cifrada con Vercel |
+| Errores en envío de correos con Resend | Manejo de excepciones asíncronas y reintentos automáticos |
 
-Despliegue: Netlify
+---
 
-Control de versiones: Git & GitHub
+## 🚀 Futuras mejoras
 
-Gestión del proyecto: JIRA + metodología Scrum
+✨ Migración a **Firebase Blaze Plan** para escalar usuarios.  
+✨ Creación de **portal de administración avanzado**.  
+✨ Implementación de **auditorías de seguridad y WAF**.  
+✨ Migración del sistema de correos a **Firebase Cloud Functions**.  
 
-🧠 Desarrollo
+---
 
-El proyecto se planificó y ejecutó en fases semanales siguiendo un flujo Scrum:
+## 👨‍💻 Autor
 
-Investigación y diseño de interfaz (UI/UX)
+**Daniel Moreno Herrezuelo**  
+📧 [danielmorenoherrezuelo@gmail.com](mailto:danielmorenoherrezuelo@gmail.com)  
+🌍 [GitHub: danii575](https://github.com/danii575)  
+📍 Madrid, España  
 
-Desarrollo del frontend con React Native for Web
+---
 
-Integración del backend y configuración de Firebase
+## 🌍 English Version
 
-Implementación de pasarela de pago y notificaciones
+### 🧭 Overview
 
-Pruebas de integración, usabilidad y responsividad
+**PetCare Seguros** is a web application created as a **Final Degree Project** for the *Multiplatform Application Development* program.  
+Its goal is to **digitally transform pet insurance management** for SMEs using a modern, secure, and responsive interface.
 
-Documentación y despliegue final en Netlify
+🧩 Main features:
+- Secure login and registration via Firebase Authentication  
+- Insurance plan management via Firestore  
+- Simulated payment flow with Stripe (test mode)  
+- Email notifications via Resend + Vercel  
+- Responsive design for all screen sizes  
 
-La aplicación ha sido testeada en diferentes navegadores y resoluciones, garantizando una experiencia óptima en todos los dispositivos.
+---
 
-🧩 Problemas y soluciones aplicadas
+### ⚙️ Tech Stack
 
-Gestión del estado global en React Native for Web con múltiples componentes interdependientes.
-🟢 Solución: Implementación de hooks personalizados y separación de contexto global.
+React Native for Web · Expo · TypeScript · Firebase · Stripe · Resend · Netlify  
 
-Responsividad precisa con Tailwind (NativeWind) en distintos navegadores.
-🟢 Solución: Ajuste de breakpoints y media queries específicas.
+---
 
-Errores en la API de Stripe y manejo de respuestas al usuario.
-🟢 Solución: Validación de payloads y mensajes controlados de error.
+### 👤 Author
 
-Seguridad en variables de entorno y funciones serverless.
-🟢 Solución: Configuración cifrada mediante Vercel Environment Variables.
+**Daniel Moreno Herrezuelo**  
+📧 [danielmorenoherrezuelo@gmail.com](mailto:danielmorenoherrezuelo@gmail.com)  
+🌍 [GitHub: danii575](https://github.com/danii575)
 
-Integración de Resend (correo) y manejo de errores de envío.
-🟢 Solución: Control de estado y reintentos automáticos mediante hooks asíncronos.
+---
 
-💰 Coste académico y viabilidad
-
-Horas totales estimadas: 320 h
-
-Valor/hora (estimado académico): 25 €/h
-
-Coste teórico total: ≈ 8.000 €
-
-El proyecto demuestra la viabilidad técnica y económica de una transformación digital en el sector de seguros veterinarios.
-
-🔒 Futuras mejoras
-
-Migración a Firebase Blaze Plan para soportar mayor volumen de usuarios y datos.
-
-Portal de administración avanzado para gestionar notificaciones y siniestros online.
-
-Auditorías de seguridad con WAF y políticas CSP más estrictas.
-
-Automatización de correos mediante Firebase Cloud Functions.
-
-👤 Autor
-
-Daniel Moreno Herrezuelo
-📧 danielmorenoherrezuelo@gmail.com
-
-🌍 GitHub: danii575
-
-📍 Madrid, España
-
-🌍 English Version
-🧭 Overview
-
-PetCare Seguros is a web application developed as a Final Degree Project (TFC) for the Multiplatform Application Development program.
-Its goal is to digitally transform pet insurance management for small and medium-sized companies through an accessible, efficient, and modern web platform.
-
-The app allows users to view insurance plans, manage accounts with secure authentication, simulate purchases using a test payment gateway, and receive automatic email notifications.
-
-🎯 Main objectives
-
-Build a functional, responsive, and user-friendly web app.
-
-Enable digital user and policy management.
-
-Implement Firebase Authentication for secure login and registration.
-
-Store and manage data using Firebase Firestore.
-
-Integrate a test payment gateway (Stripe).
-
-Configure automatic email notifications via Resend + Vercel Serverless.
-
-Deploy the application on Netlify with CI/CD from GitHub.
-
-Ensure cross-platform responsiveness using React Native for Web + NativeWind.
-
-⚙️ Technologies
-Frontend	Backend	Services	Deployment
-React Native for Web (Expo, TypeScript)	Firebase (Auth, Firestore)	Stripe (test), Resend (via Vercel)	Netlify
-🚀 Development Process
-
-Built following an agile Scrum methodology, covering all stages: design, implementation, testing, and deployment.
-Extensive testing ensured compatibility across major browsers and screen sizes.
-
-🧩 Key Challenges and Solutions
-
-Global state management: solved via custom hooks and modular contexts.
-
-Cross-browser responsiveness: improved via tailored Tailwind breakpoints.
-
-Stripe integration: handled API errors and user feedback with validations.
-
-Environment variables security: implemented encrypted configs in Vercel.
-
-Email notifications: improved reliability with async retry logic.
-
-🔮 Future Improvements
-
-Upgrade to Firebase Blaze Plan.
-
-Add admin portal for claim management and notifications.
-
-Strengthen security audits and content policies.
-
-Automate email system using Firebase Cloud Functions.
-
-👨‍💻 Author
-
-Daniel Moreno Herrezuelo
-📧 danielmorenoherrezuelo@gmail.com
-
-🌍 GitHub: danii575
-
-📍 Madrid, Spain
+⭐ *Desarrollado con dedicación y pasión por el desarrollo fullstack.*
